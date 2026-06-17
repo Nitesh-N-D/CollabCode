@@ -1,0 +1,20 @@
+{
+  "name": "collabcode",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "dev:server": "pnpm --filter @collabcode/server dev",
+    "dev:dashboard": "pnpm --filter @collabcode/dashboard dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "sim": "pnpm --filter @collabcode/sim start",
+    "start": "pnpm --filter @collabcode/server start"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.4",
+    "typescript": "^5.8.3"
+  }
+}

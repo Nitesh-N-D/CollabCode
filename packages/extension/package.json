@@ -1,0 +1,59 @@
+{
+  "name": "collabcode-vscode",
+  "displayName": "CollabCode",
+  "description": "Real-time classroom coding support for students.",
+  "version": "1.0.0",
+  "publisher": "collabcode",
+  "license": "MIT",
+  "engines": { "vscode": "^1.95.0" },
+  "categories": ["Education", "Other"],
+  "activationEvents": ["onStartupFinished"],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      { "command": "collabcode.joinRoom", "title": "CollabCode: Join Classroom" },
+      { "command": "collabcode.leaveRoom", "title": "CollabCode: Leave Classroom" },
+      { "command": "collabcode.requestHelp", "title": "CollabCode: Request Help Privately" },
+      { "command": "collabcode.exportSession", "title": "CollabCode: Export My Session" }
+    ],
+    "configuration": {
+      "title": "CollabCode",
+      "properties": {
+        "collabcode.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:4000",
+          "description": "CollabCode server URL"
+        },
+        "collabcode.displayName": {
+          "type": "string",
+          "default": "",
+          "description": "Name shown to the instructor"
+        },
+        "collabcode.snapshotIntervalMs": {
+          "type": "number",
+          "default": 2000,
+          "minimum": 1000,
+          "description": "How often active editor snapshots are sent"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "dev": "esbuild src/extension.ts --bundle --platform=node --external:vscode --outfile=dist/extension.js --watch",
+    "build": "esbuild src/extension.ts --bundle --platform=node --external:vscode --outfile=dist/extension.js --minify",
+    "package": "pnpm build && vsce package --no-dependencies",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node -e \"console.log('extension: build is the verification gate')\""
+  },
+  "dependencies": {
+    "@collabcode/shared": "workspace:*",
+    "socket.io-client": "^4.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.29",
+    "@types/vscode": "^1.95.0",
+    "@vscode/vsce": "^3.4.2",
+    "esbuild": "^0.25.5",
+    "typescript": "^5.8.3"
+  }
+}

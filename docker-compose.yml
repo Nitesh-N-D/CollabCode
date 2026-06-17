@@ -1,0 +1,23 @@
+services:
+  server:
+    build:
+      context: .
+      target: server
+    environment:
+      PORT: 4000
+      FRONTEND_URL: http://localhost:5173
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      STUCK_SCAN_MS: 5000
+    ports:
+      - "4000:4000"
+
+  dashboard:
+    build:
+      context: .
+      target: dashboard
+      args:
+        VITE_SERVER_URL: http://localhost:4000
+    depends_on:
+      - server
+    ports:
+      - "5173:5173"

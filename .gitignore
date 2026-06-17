@@ -1,0 +1,11 @@
+node_modules/
+dist/
+out/
+coverage/
+.turbo/
+.env
+.env.local
+*.vsix
+*.log
+.DS_Store
+.env.example

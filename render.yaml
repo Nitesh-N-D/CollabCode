@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: collabcode-server
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerCommand: pnpm --filter @collabcode/server start
+    envVars:
+      - key: PORT
+        value: 4000
+      - key: FRONTEND_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
