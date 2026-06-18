@@ -27,6 +27,10 @@ class CollabCodeClient implements vscode.Disposable {
   private snapshotTimer?: NodeJS.Timeout;
   private lastEditAt = Date.now();
   private readonly disposables: vscode.Disposable[] = [];
+  private hintPanel?: vscode.WebviewPanel;
+  private readonly hints: Hint[] = [];
+  private sessionTitle = "";
+  private instructorName = "";
 
   constructor(private readonly context: vscode.ExtensionContext) {
     this.status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
@@ -47,7 +51,7 @@ class CollabCodeClient implements vscode.Disposable {
     const previous = this.context.globalState.get<string>("collabcode.roomCode");
     const roomCode = await vscode.window.showInputBox({
       prompt: "Enter the classroom room code",
-      placeHolder: "CS101",
+      placeHolder: "ABC123",
       value: previous
     });
     if (!roomCode) return;
@@ -83,8 +87,7 @@ class CollabCodeClient implements vscode.Disposable {
       this.socket?.emit(EVENTS.STUDENT_JOIN, {
         roomCode: this.session.roomCode,
         studentId: this.session.studentId,
-        displayName: this.session.displayName,
-        token: "extension-local"
+        displayName: this.session.displayName
       });
       this.status.text = `$(broadcast) CollabCode: ${this.session.roomCode}`;
       this.status.backgroundColor = undefined;
@@ -92,6 +95,21 @@ class CollabCodeClient implements vscode.Disposable {
     this.socket.on("disconnect", () => {
       this.status.text = "$(sync~spin) CollabCode: Reconnecting";
       this.status.backgroundColor = new vscode.ThemeColor("statusBarItem.warningBackground");
+    });
+    this.socket.on(EVENTS.SESSION_INFO, (info) => {
+      this.sessionTitle = info.title;
+      this.instructorName = info.instructorName;
+      this.status.text = `$(broadcast) CollabCode: ${info.roomCode} · ${info.instructorName}`;
+      this.openHintPanel();
+      this.postPanel({ type: "connected", info });
+      void vscode.window.showInformationMessage(
+        `Connected to ${info.title} · Instructor: ${info.instructorName}`
+      );
+    });
+    this.socket.on(EVENTS.SESSION_ENDED, () => {
+      void vscode.window.showInformationMessage("Session ended. Thanks for participating!");
+      this.postPanel({ type: "ended" });
+      this.leave(false);
     });
     this.socket.on(EVENTS.HINT_RECEIVE, (hint) => this.receiveHint(hint));
     this.socket.on(EVENTS.PAIR_ASSIGNED, (pair) => this.receivePair(pair, false));
@@ -196,6 +214,9 @@ class CollabCodeClient implements vscode.Disposable {
 
   private receiveHint(hint: Hint): void {
     if (!this.session) return;
+    this.hints.unshift(hint);
+    this.openHintPanel();
+    this.postPanel({ type: "hints", hints: this.hints });
     this.session.events.push({
       id: randomUUID(),
       type: "hint_received",
@@ -221,6 +242,56 @@ class CollabCodeClient implements vscode.Disposable {
           });
         }
       });
+  }
+
+  private openHintPanel(): void {
+    if (this.hintPanel) {
+      this.hintPanel.reveal(vscode.ViewColumn.Beside, true);
+      return;
+    }
+    this.hintPanel = vscode.window.createWebviewPanel(
+      "collabcodeHints", "CollabCode", vscode.ViewColumn.Beside,
+      { enableScripts: true, retainContextWhenHidden: true }
+    );
+    this.hintPanel.webview.html = this.panelHtml();
+    this.hintPanel.webview.onDidReceiveMessage((message: { type: string; hintId?: string }) => {
+      if (!this.session) return;
+      if (message.type === "hintRead" && message.hintId) {
+        this.socket?.emit(EVENTS.HINT_READ, {
+          roomCode: this.session.roomCode, studentId: this.session.studentId, hintId: message.hintId
+        });
+      }
+      if (message.type === "requestHelp") this.requestHelp();
+    });
+    this.hintPanel.onDidDispose(() => { this.hintPanel = undefined; });
+    this.postPanel({
+      type: "connected",
+      info: {
+        roomCode: this.session?.roomCode, title: this.sessionTitle,
+        instructorName: this.instructorName
+      }
+    });
+    this.postPanel({ type: "hints", hints: this.hints });
+  }
+
+  private postPanel(message: unknown): void {
+    void this.hintPanel?.webview.postMessage(message);
+  }
+
+  private panelHtml(): string {
+    return `<!doctype html><html><head><meta charset="utf-8"><style>
+body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-editor-background);padding:16px}
+header{padding-bottom:12px;border-bottom:1px solid var(--vscode-panel-border)}small{color:var(--vscode-descriptionForeground)}
+article{margin-top:12px;padding:12px;border-left:3px solid var(--vscode-focusBorder);background:var(--vscode-editor-inactiveSelectionBackground)}
+pre{padding:10px;overflow:auto;background:var(--vscode-textCodeBlock-background)}button{padding:6px 10px;color:var(--vscode-button-foreground);background:var(--vscode-button-background);border:0}
+#help{width:100%;margin:14px 0}.empty{color:var(--vscode-descriptionForeground)}</style></head><body>
+<header><strong id="title">CollabCode</strong><br><small id="status">Connecting…</small></header>
+<button id="help">Request help privately</button><main id="hints"><p class="empty">No hints yet.</p></main>
+<script>const vscode=acquireVsCodeApi();const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+document.getElementById('help').onclick=()=>vscode.postMessage({type:'requestHelp'});
+addEventListener('message',({data})=>{if(data.type==='connected'){title.textContent=data.info.title||'CollabCode';status.textContent=(data.info.roomCode||'')+' · '+(data.info.instructorName||'Connected')}
+if(data.type==='ended')status.textContent='Session ended';
+if(data.type==='hints'){hints.innerHTML=data.hints.length?data.hints.map(h=>'<article><small>'+new Date(h.sentAt).toLocaleTimeString()+'</small><p>'+esc(h.hint)+'</p>'+(h.codeSnippet?'<pre>'+esc(h.codeSnippet)+'</pre>':'')+'<button data-id="'+h.id+'">Got it</button></article>').join(''):'<p class="empty">No hints yet.</p>';hints.querySelectorAll('button').forEach(b=>b.onclick=()=>{vscode.postMessage({type:'hintRead',hintId:b.dataset.id});b.disabled=true;b.textContent='Acknowledged'})}});</script></body></html>`;
   }
 
   private receivePair(pair: PairAssignment, swapped: boolean): void {

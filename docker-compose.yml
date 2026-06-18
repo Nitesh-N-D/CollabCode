@@ -6,6 +6,10 @@ services:
     environment:
       PORT: 4000
       FRONTEND_URL: http://localhost:5173
+      STUDENT_PORTAL_URL: http://localhost:5174
+      SUPABASE_URL: ${SUPABASE_URL}
+      SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY}
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       STUCK_SCAN_MS: 5000
     ports:
@@ -17,7 +21,20 @@ services:
       target: dashboard
       args:
         VITE_SERVER_URL: http://localhost:4000
+        VITE_SUPABASE_URL: ${SUPABASE_URL}
+        VITE_SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
     depends_on:
       - server
     ports:
       - "5173:5173"
+
+  student-portal:
+    build:
+      context: .
+      target: student-portal
+      args:
+        VITE_SERVER_URL: http://localhost:4000
+    depends_on:
+      - server
+    ports:
+      - "5174:5174"

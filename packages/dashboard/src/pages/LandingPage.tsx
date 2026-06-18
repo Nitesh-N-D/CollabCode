@@ -5,7 +5,6 @@ import {
   ChartNoAxesCombined,
   CircleHelp,
   Eye,
-  Play,
   RadioTower,
   Rewind,
   Sparkles
@@ -50,33 +49,21 @@ export function LandingPage() {
             </p>
             <div className="hero-actions">
               <Link className="button primary" to="/dashboard">Start a live room <ArrowRight size={17} /></Link>
-              <a className="button secondary" href="#preview"><Play size={16} /> See the product</a>
+              <a className="button secondary" href="#preview"><Eye size={16} /> See how live data works</a>
             </div>
-            <div className="trust-row"><span>No screen sharing</span><span>Local demo mode</span><span>Open architecture</span></div>
+            <div className="trust-row"><span>No screen sharing</span><span>Persistent sessions</span><span>Multi-instructor</span></div>
           </motion.div>
           <motion.div
             id="preview"
-            className="product-preview"
-            initial={{ opacity: 0, scale: 0.96, y: 25 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="product-preview real-data-note"
+            initial={{ opacity: 0, y: 25 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.75 }}
           >
-            <div className="preview-top"><Logo compact /><span>CS101 · Algorithms lab</span><b><span /> Live</b></div>
-            <div className="preview-body">
-              <aside><span className="active" /><span /><span /><span /><span /></aside>
-              <div className="preview-content">
-                <div className="preview-heading"><div><small>Room health</small><strong>24 students active</strong></div><button>Send class hint</button></div>
-                <div className="preview-alert"><Sparkles size={18} /><div><strong>3 students need a checkpoint</strong><span>Similar idle pattern near the recursion base case.</span></div><button>Review</button></div>
-                <div className="preview-grid">
-                  {["Asha Rao", "Noah Kim", "Maya Chen", "Eli Brooks", "Sofia Patel", "Liam Davis"].map((name, index) => (
-                    <div className={index === 1 ? "warn" : ""} key={name}>
-                      <header><i>{name.split(" ").map((part) => part[0]).join("")}</i><span><b>{name}</b><small>{index === 1 ? "Needs attention" : "Coding now"}</small></span></header>
-                      <pre>{index === 1 ? "if n == 0:\n    pass" : "return solve(n - 1)\n+ solve(n - 2)"}</pre>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <RadioTower size={36} />
+            <h2>Every classroom starts with real participants.</h2>
+            <p>CollabCode never fills the dashboard with staged students. Create a room, share its generated code, and live activity appears as students join.</p>
+            <Link className="button primary" to="/auth">Create a session <ArrowRight size={17} /></Link>
           </motion.div>
         </section>
         <section className="section" id="workflow">

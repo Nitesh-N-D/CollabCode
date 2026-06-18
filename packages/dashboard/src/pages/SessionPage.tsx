@@ -29,14 +29,23 @@ import { Logo } from "../components/Logo";
 import { ReplayModal } from "../components/ReplayModal";
 import { StudentCard } from "../components/StudentCard";
 import { getSocket } from "../lib/socket";
+import { accessToken } from "../lib/supabase";
+import { api } from "../lib/api";
 
 type Filter = "all" | "active" | "attention" | "offline";
 
 export function SessionPage() {
-  const roomCode = (useParams().roomCode ?? "CS101").toUpperCase();
+  const roomCode = (useParams().roomCode ?? "").toUpperCase();
   const [state, setState] = useState<ClassroomState>({
+    id: "",
     roomCode,
     title: `${roomCode} Live Lab`,
+    assignmentName: "",
+    instructorId: "",
+    instructorName: "",
+    active: true,
+    endedAt: null,
+    expiresAt: null,
     students: [],
     hints: [],
     alerts: [],
@@ -53,12 +62,15 @@ export function SessionPage() {
   const [replay, setReplay] = useState<ReplayData>();
   const [pairA, setPairA] = useState("");
   const [pairB, setPairB] = useState("");
+  const [instructorEmail, setInstructorEmail] = useState("");
 
   useEffect(() => {
     const socket = getSocket();
-    const join = () => {
+    const join = async () => {
       setConnected(true);
-      socket.emit(EVENTS.INSTRUCTOR_JOIN, { roomCode, instructorName: "Instructor" });
+      socket.emit(EVENTS.INSTRUCTOR_JOIN, {
+        roomCode, instructorName: "Instructor", token: await accessToken()
+      });
     };
     const onState = (next: ClassroomState) => setState(next);
     const onStudent = (student: StudentState) => {
@@ -92,7 +104,7 @@ export function SessionPage() {
     socket.on(EVENTS.AI_HINT_RESULT, onAi);
     socket.on(EVENTS.REPLAY_DATA, onReplay);
     socket.connect();
-    if (socket.connected) join();
+    if (socket.connected) void join();
     return () => {
       socket.off("connect", join);
       socket.off(EVENTS.CLASSROOM_STATE, onState);
@@ -191,6 +203,26 @@ export function SessionPage() {
               <button className="button secondary small" disabled={!targetId || aiLoading} onClick={() => askAi(targetId)} type="button"><Sparkles size={15} />{aiLoading ? "Thinking..." : "AI draft"}</button>
               <button className="button primary small" disabled={!hint.trim()} onClick={sendHint} type="button"><Send size={15} /> Send</button>
             </div>
+          </section>
+          <section>
+            <div className="panel-heading"><div><span className="eyebrow"><Users size={14} /> Teaching team</span><h2>Add co-instructor</h2></div></div>
+            <input type="email" placeholder="colleague@school.edu" value={instructorEmail} onChange={(event) => setInstructorEmail(event.target.value)} />
+            <button className="button secondary full" disabled={!instructorEmail.trim()} onClick={async () => {
+              try {
+                await api.inviteInstructor(roomCode, instructorEmail);
+                setNotice("Co-instructor added.");
+                setInstructorEmail("");
+              } catch (error) {
+                setNotice(error instanceof Error ? error.message : "Could not add instructor.");
+              }
+            }} type="button">Add to this room</button>
+          </section>
+          <section>
+            <button className="button full" onClick={() => {
+              if (window.confirm("End this live session for every student?")) {
+                getSocket().emit(EVENTS.END_SESSION, { roomCode });
+              }
+            }} type="button">End session</button>
           </section>
           <section>
             <div className="panel-heading"><div><span className="eyebrow"><Users size={14} /> Collaboration</span><h2>Pair students</h2></div></div>

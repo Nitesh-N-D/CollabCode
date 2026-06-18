@@ -37,7 +37,17 @@ export interface StudentJoinPayload {
 export interface InstructorJoinPayload {
   roomCode: string;
   instructorName: string;
-  token?: string;
+  token: string;
+}
+
+export interface SessionInfo {
+  id: string;
+  roomCode: string;
+  title: string;
+  assignmentName: string;
+  instructorName: string;
+  active: boolean;
+  expiresAt: number | null;
 }
 
 export interface CodeSnapshotPayload {
@@ -137,8 +147,15 @@ export interface StuckAlert {
 }
 
 export interface ClassroomState {
+  id: string;
   roomCode: string;
   title: string;
+  assignmentName: string;
+  instructorId: string;
+  instructorName: string;
+  active: boolean;
+  endedAt: number | null;
+  expiresAt: number | null;
   students: StudentState[];
   hints: Hint[];
   alerts: StuckAlert[];
@@ -185,6 +202,9 @@ export interface IntegrityReport {
 }
 
 export interface ServerToClientEvents {
+  [EVENTS.SESSION_INFO]: (info: SessionInfo) => void;
+  [EVENTS.SESSION_ENDED]: (data: { roomCode: string; endedAt: number }) => void;
+  [EVENTS.STUDENT_JOINED]: (student: StudentState) => void;
   [EVENTS.CLASSROOM_STATE]: (state: ClassroomState) => void;
   [EVENTS.STUDENT_UPDATE]: (student: StudentState) => void;
   [EVENTS.STUCK_ALERT]: (alert: StuckAlert) => void;
@@ -208,6 +228,7 @@ export interface ClientToServerEvents {
   [EVENTS.HINT_READ]: (payload: { roomCode: string; studentId: string; hintId: string }) => void;
   [EVENTS.ASSIGN_PAIR]: (payload: PairAssignmentPayload) => void;
   [EVENTS.REQUEST_REPLAY]: (payload: { roomCode: string; studentId: string }) => void;
+  [EVENTS.END_SESSION]: (payload: { roomCode: string }) => void;
 }
 
 export const EVENTS = {
@@ -230,5 +251,9 @@ export const EVENTS = {
   PAIR_ASSIGNED: "pair:assigned",
   PAIR_SWAP: "pair:swap",
   REPLAY_DATA: "replay:data",
-  ERROR: "collabcode:error"
+  ERROR: "collabcode:error",
+  SESSION_INFO: "session:info",
+  SESSION_ENDED: "session:ended",
+  STUDENT_JOINED: "student:joined"
+  ,END_SESSION: "instructor:endSession"
 } as const;

@@ -11,8 +11,15 @@ import type {
 } from "@collabcode/shared";
 
 interface RoomRecord {
+  id: string;
   roomCode: string;
   title: string;
+  assignmentName: string;
+  instructorId: string;
+  instructorName: string;
+  active: boolean;
+  endedAt: number | null;
+  expiresAt: number | null;
   students: Map<string, StudentState>;
   hints: Hint[];
   alerts: StuckAlert[];
@@ -29,14 +36,35 @@ export class ClassroomStore {
     const existing = this.rooms.get(code);
     if (existing) return existing;
     const room = {
+      id: "",
       roomCode: code,
       title,
+      assignmentName: "",
+      instructorId: "",
+      instructorName: "",
+      active: true,
+      endedAt: null,
+      expiresAt: null,
       students: new Map<string, StudentState>(),
       hints: [],
       alerts: [],
       createdAt: Date.now()
     };
     this.rooms.set(code, room);
+    return room;
+  }
+
+  hydrateRoom(input: {
+    id: string; code: string; title: string; assignmentName: string;
+    instructorId: string; instructorName: string; active: boolean;
+    endedAt: number | null; expiresAt: number | null;
+  }): RoomRecord {
+    const room = this.ensureRoom(input.code, input.title);
+    Object.assign(room, {
+      id: input.id, title: input.title, assignmentName: input.assignmentName,
+      instructorId: input.instructorId, instructorName: input.instructorName,
+      active: input.active, endedAt: input.endedAt, expiresAt: input.expiresAt
+    });
     return room;
   }
 
@@ -315,8 +343,15 @@ export class ClassroomStore {
 
   private toState(room: RoomRecord): ClassroomState {
     return {
+      id: room.id,
       roomCode: room.roomCode,
       title: room.title,
+      assignmentName: room.assignmentName,
+      instructorId: room.instructorId,
+      instructorName: room.instructorName,
+      active: room.active,
+      endedAt: room.endedAt,
+      expiresAt: room.expiresAt,
       students: [...room.students.values()],
       hints: room.hints,
       alerts: room.alerts,

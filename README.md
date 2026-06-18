@@ -1,62 +1,21 @@
 # CollabCode
 
-Real-time classroom coding intelligence for CS instructors.
-
-CollabCode pairs a student-controlled VS Code extension with a live instructor
-dashboard. It shows coding progress without screen sharing, detects silent
-struggle, delivers private or class-wide hints, assigns pair-programming roles,
-replays sessions, and summarizes classroom patterns.
-
-## What is included
-
-- Premium React instructor dashboard and landing page
-- Typed Express and Socket.IO backend
-- VS Code extension with explicit join/leave controls
-- Five-student realistic simulator
-- Stuck scoring, common-pattern alerts, and one-minute AI hint cache
-- Targeted hints, broadcasts, read receipts, and pair role swaps
-- Session replay, struggle heatmap, and integrity review endpoint
-- Turborepo builds, unit tests, Docker targets, Render and Vercel manifests
-
-## Quick start
-
-```powershell
-npm install --global pnpm@9.15.9
-pnpm install
-pnpm build
-```
-
-Run the server, dashboard, and simulator in three terminals:
-
-```powershell
-pnpm dev:server
-pnpm dev:dashboard
-pnpm sim
-```
-
-Open http://localhost:5173/session/CS101.
-
-See [RUNBOOK.md](RUNBOOK.md) for extension installation, Docker, environment
-variables, verification commands, and API routes.
+Production-oriented real-time classroom coding intelligence.
 
 ## Architecture
 
-```text
-VS Code extension ---- Socket.IO ----+
-                                     |
-Student simulator ---- Socket.IO ----+---- Node.js server
-                                     |       |
-Instructor dashboard - Socket.IO ----+       +-- in-memory session/replay store
-                                             +-- optional Gemini hints
-                                             +-- analytics and integrity APIs
-```
+- Instructor dashboard: React, Vite, Supabase Auth
+- Student portal: public join-by-code React app
+- Student editor: VS Code extension with live hint panel
+- Backend: Express and Socket.IO
+- Persistence: Supabase PostgreSQL
+- AI hints: optional Gemini with a deterministic Socratic fallback
 
-## Safety and privacy
+Many instructors can sign in and create multiple independent rooms at the same
+time. Room ownership and co-instructor membership are enforced by authenticated
+user IDs. Many students can join each room concurrently.
 
-Students explicitly join and leave rooms. The extension stops capturing when a
-student leaves. The integrity endpoint emits review signals only and must not be
-used as an automatic misconduct decision.
+No production page is populated with fake students. The included simulator is
+an explicit load/testing utility and can only join a real active room code.
 
-## License
-
-MIT
+See [RUNBOOK.md](RUNBOOK.md) for setup, verification, and deployment.

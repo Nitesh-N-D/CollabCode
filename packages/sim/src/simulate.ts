@@ -8,9 +8,13 @@ import {
 
 type SimSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
-const SERVER_URL = process.env.SIM_SERVER_URL ?? "http://localhost:4000";
-const ROOM_CODE = (process.env.SIM_ROOM ?? "CS101").toUpperCase();
-const DURATION = Number(process.argv.find((arg) => arg.startsWith("--duration="))?.split("=")[1] ?? 0);
+function argument(name: string): string | undefined {
+  const index = process.argv.indexOf(`--${name}`);
+  return index >= 0 ? process.argv[index + 1] : undefined;
+}
+const SERVER_URL = argument("server") ?? process.env.SIM_SERVER_URL ?? "http://localhost:4000";
+const ROOM_CODE = (argument("room") ?? process.env.SIM_ROOM ?? "").toUpperCase();
+const DURATION = Number(argument("duration") ?? 0);
 
 const scenarios = [
   {
@@ -74,8 +78,7 @@ function runStudent(scenario: (typeof scenarios)[number], index: number): SimSoc
     socket.emit(EVENTS.STUDENT_JOIN, {
       roomCode: ROOM_CODE,
       studentId,
-      displayName: scenario.name,
-      token: "simulator"
+      displayName: scenario.name
     });
     console.log(`[sim] ${scenario.name} joined ${ROOM_CODE}`);
   });
@@ -127,6 +130,7 @@ function runStudent(scenario: (typeof scenarios)[number], index: number): SimSoc
 }
 
 async function main(): Promise<void> {
+  if (!ROOM_CODE) throw new Error("A real session code is required. Use: pnpm sim -- --room ABC123");
   const health = await fetch(`${SERVER_URL}/health`);
   if (!health.ok) throw new Error(`Server health check failed: ${health.status}`);
   console.log(`[sim] Starting ${scenarios.length} students against ${SERVER_URL}`);

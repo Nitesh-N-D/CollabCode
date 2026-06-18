@@ -7,7 +7,7 @@ import { Logo } from "../components/Logo";
 import { api } from "../lib/api";
 
 export function AnalyticsPage() {
-  const roomCode = (useParams().roomCode ?? "CS101").toUpperCase();
+  const roomCode = (useParams().roomCode ?? "").toUpperCase();
   const [report, setReport] = useState<AnalyticsReport>();
   const [integrity, setIntegrity] = useState<IntegrityReport>();
   const [error, setError] = useState("");
@@ -54,7 +54,7 @@ export function AnalyticsPage() {
                 <Tooltip contentStyle={{ background: "#111722", border: "1px solid #293244", borderRadius: 10 }} />
                 <Bar dataKey="totalIdleMs" fill="#8b7cf8" radius={[5, 5, 0, 0]} />
               </BarChart>
-            </ResponsiveContainer> : <div className="empty-chart">No struggle hotspots yet. The simulator will create them as idle time grows.</div>}
+            </ResponsiveContainer> : <div className="empty-chart">No struggle hotspots were recorded for this session.</div>}
           </section>
           <section className="integrity-card">
             <div><span className="eyebrow">Academic integrity</span><h2>Process similarity review</h2><p>This is a review signal, never an automatic accusation.</p></div>

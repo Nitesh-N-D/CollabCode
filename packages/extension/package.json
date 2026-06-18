@@ -41,7 +41,7 @@
   "scripts": {
     "dev": "esbuild src/extension.ts --bundle --platform=node --external:vscode --outfile=dist/extension.js --watch",
     "build": "esbuild src/extension.ts --bundle --platform=node --external:vscode --outfile=dist/extension.js --minify",
-    "package": "pnpm build && vsce package --no-dependencies",
+    "package": "pnpm build && vsce package --no-dependencies --allow-missing-repository",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "node -e \"console.log('extension: build is the verification gate')\""
   },

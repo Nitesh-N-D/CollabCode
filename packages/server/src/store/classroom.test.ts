@@ -45,4 +45,21 @@ describe("ClassroomStore", () => {
       struggleCount: 1
     });
   });
+
+  it("keeps concurrently owned rooms isolated", () => {
+    store.hydrateRoom({
+      id: "room-a", code: "AAA111", title: "Instructor A", assignmentName: "Lab A",
+      instructorId: "instructor-a", instructorName: "A", active: true,
+      endedAt: null, expiresAt: null
+    });
+    store.hydrateRoom({
+      id: "room-b", code: "BBB222", title: "Instructor B", assignmentName: "Lab B",
+      instructorId: "instructor-b", instructorName: "B", active: true,
+      endedAt: null, expiresAt: null
+    });
+    store.joinStudent("AAA111", "student-a", "Asha", "socket-a");
+    store.joinStudent("BBB222", "student-b", "Mina", "socket-b");
+    expect(store.getState("AAA111")?.students.map((student) => student.studentId)).toEqual(["student-a"]);
+    expect(store.getState("BBB222")?.students.map((student) => student.studentId)).toEqual(["student-b"]);
+  });
 });

@@ -8,13 +8,15 @@ import {
 import { createApp } from "./app";
 import { scanForStuckStudents } from "./ai/stuckDetector";
 import { registerHandlers } from "./socket/handlers";
+import { assertProductionConfig, config } from "./config";
 
-export function startServer(port = Number(process.env.PORT ?? 4000)) {
+export function startServer(port = config.port) {
+  assertProductionConfig();
   const app = createApp();
   const httpServer = createServer(app);
   const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer, {
     cors: {
-      origin: process.env.FRONTEND_URL?.split(",") ?? "*",
+      origin: config.frontendOrigins,
       methods: ["GET", "POST"]
     }
   });
