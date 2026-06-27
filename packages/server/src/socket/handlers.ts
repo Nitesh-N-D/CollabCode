@@ -32,9 +32,13 @@ function isInstructorSocket(socket: CollabSocket, roomCode: string): boolean {
   return socket.data.role === "instructor" && socket.data.roomCode === roomCode.toUpperCase();
 }
 
+function clean(value: string, maxLength: number): string {
+  return value.replaceAll("\0", "").trim().slice(0, maxLength);
+}
+
 export function registerHandlers(io: CollabServer, socket: CollabSocket): void {
   socket.on(EVENTS.STUDENT_JOIN, async (payload) => {
-    const roomCode = payload.roomCode.trim().toUpperCase();
+    const roomCode = clean(payload.roomCode, 6).toUpperCase();
     const row = await findSession(roomCode).catch(() => null);
     if (!row || !row.active || (row.expires_at && Date.parse(row.expires_at) <= Date.now())) {
       socket.emit(EVENTS.ERROR, { message: "This room code is invalid or the session has ended." });
@@ -47,11 +51,12 @@ export function registerHandlers(io: CollabServer, socket: CollabSocket): void {
       expiresAt: row.expires_at ? Date.parse(row.expires_at) : null
     });
     socket.join(`room:${roomCode}:students`);
-    socket.join(`student:${payload.studentId}`);
+    const studentId = clean(payload.studentId, 120);
+    socket.join(`student:${studentId}`);
     socket.data.role = "student";
     socket.data.roomCode = roomCode;
-    socket.data.studentId = payload.studentId;
-    const student = classroomStore.joinStudent(roomCode, payload.studentId, payload.displayName, socket.id);
+    socket.data.studentId = studentId;
+    const student = classroomStore.joinStudent(roomCode, studentId, clean(payload.displayName, 80), socket.id);
     await Promise.all([
       persistStudent(row.id, student),
       persistEvents(row.id, student.studentId, student.sessionEvents.slice(-1))
@@ -66,7 +71,7 @@ export function registerHandlers(io: CollabServer, socket: CollabSocket): void {
   });
 
   socket.on(EVENTS.INSTRUCTOR_JOIN, async (payload) => {
-    const roomCode = payload.roomCode.trim().toUpperCase();
+    const roomCode = clean(payload.roomCode, 6).toUpperCase();
     try {
       const [user, row] = await Promise.all([verifyToken(payload.token), findSession(roomCode)]);
       if (!row || !(await canManageSession(row.id, user.id))) throw new Error("You cannot manage this session");
@@ -143,10 +148,10 @@ export function registerHandlers(io: CollabServer, socket: CollabSocket): void {
     const hint: Hint = {
       id: randomUUID(),
       roomCode: payload.roomCode.toUpperCase(),
-      hint: payload.hint.trim(),
-      codeSnippet: payload.codeSnippet?.trim() || undefined,
+      hint: clean(payload.hint, 2000),
+      codeSnippet: payload.codeSnippet ? clean(payload.codeSnippet, 12_000) : undefined,
       targetStudentId: payload.targetStudentId,
-      instructorName: payload.instructorName || "Instructor",
+      instructorName: clean(payload.instructorName, 80) || "Instructor",
       sentAt: Date.now(),
       readBy: [],
       aiGenerated: false

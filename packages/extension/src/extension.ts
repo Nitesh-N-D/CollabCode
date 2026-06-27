@@ -26,6 +26,8 @@ class CollabCodeClient implements vscode.Disposable {
   private readonly status: vscode.StatusBarItem;
   private snapshotTimer?: NodeJS.Timeout;
   private lastEditAt = Date.now();
+  private editTimestamps: number[] = [];
+  private inFlow = false;
   private readonly disposables: vscode.Disposable[] = [];
   private hintPanel?: vscode.WebviewPanel;
   private readonly hints: Hint[] = [];
@@ -42,6 +44,8 @@ class CollabCodeClient implements vscode.Disposable {
       this.status,
       vscode.workspace.onDidChangeTextDocument(() => {
         this.lastEditAt = Date.now();
+        this.editTimestamps.push(this.lastEditAt);
+        this.editTimestamps = this.editTimestamps.filter((timestamp) => timestamp >= Date.now() - 60_000);
       }),
       vscode.window.onDidChangeTextEditorSelection(() => this.sendSnapshot())
     );
@@ -184,6 +188,10 @@ class CollabCodeClient implements vscode.Disposable {
     const editor = vscode.window.activeTextEditor;
     if (!editor || editor.document.uri.scheme !== "file") return;
     const timestamp = Date.now();
+    const diagnostics = vscode.languages.getDiagnostics(editor.document.uri)
+      .filter((diagnostic) => diagnostic.severity === vscode.DiagnosticSeverity.Error).length;
+    this.editTimestamps = this.editTimestamps.filter((value) => value >= timestamp - 60_000);
+    this.inFlow = this.editTimestamps.length > 3 && timestamp - this.lastEditAt < 10_000 && diagnostics === 0;
     const event: SessionEvent = {
       id: randomUUID(),
       type: "snapshot",
@@ -206,9 +214,9 @@ class CollabCodeClient implements vscode.Disposable {
       cursorLine: event.cursorLine!,
       timestamp,
       idleMs: event.idleMs!,
-      errorCount: vscode.languages
-        .getDiagnostics(editor.document.uri)
-        .filter((diagnostic) => diagnostic.severity === vscode.DiagnosticSeverity.Error).length
+      errorCount: diagnostics,
+      selectionStartLine: editor.selection.start.line + 1,
+      selectionEndLine: editor.selection.end.line + 1
     });
   }
 
@@ -223,6 +231,10 @@ class CollabCodeClient implements vscode.Disposable {
       timestamp: Date.now(),
       meta: { hintId: hint.id, hint: hint.hint }
     });
+    if (!hint.targetStudentId && this.inFlow) {
+      vscode.window.setStatusBarMessage("$(lightbulb) A class hint is waiting in CollabCode", 5000);
+      return;
+    }
     const action = hint.codeSnippet ? "Show code note" : "Mark read";
     void vscode.window
       .showInformationMessage(`CollabCode hint: ${hint.hint}`, action)

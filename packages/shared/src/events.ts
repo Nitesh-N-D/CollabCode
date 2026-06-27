@@ -61,6 +61,8 @@ export interface CodeSnapshotPayload {
   timestamp: number;
   idleMs: number;
   errorCount?: number;
+  selectionStartLine?: number;
+  selectionEndLine?: number;
 }
 
 export interface HelpRequestPayload {
@@ -125,6 +127,10 @@ export interface StudentState {
   stuckFlag: boolean;
   helpRequested: boolean;
   connected: boolean;
+  selectionStartLine: number;
+  selectionEndLine: number;
+  focusProtected: boolean;
+  editRate: number;
   socketId?: string;
   pairPartnerId?: string;
   pairRole?: "driver" | "observer";
@@ -184,7 +190,66 @@ export interface AnalyticsReport {
   hintsSent: number;
   averageIdleMs: number;
   heatmap: HeatmapEntry[];
+  timeline: AnalyticsTimelinePoint[];
   generatedAt: number;
+}
+
+export interface AnalyticsTimelinePoint {
+  timestamp: number;
+  activeCount: number;
+  stuckCount: number;
+  idleCount: number;
+  helpCount: number;
+  averageStuckScore: number;
+}
+
+export interface TeachingMoment {
+  id: string;
+  sessionId: string;
+  studentId: string;
+  title: string;
+  reason: string;
+  startAt: number;
+  endAt: number;
+  createdAt: number;
+}
+
+export interface GroupSuggestion {
+  studentIds: string[];
+  studentNames: string[];
+  reason: string;
+}
+
+export interface ClassPulsePayload {
+  roomCode: string;
+  timestamp: number;
+  activeCount: number;
+  stuckCount: number;
+  editRate: number;
+}
+
+export interface ProgressReceipt {
+  sessionId: string;
+  roomCode: string;
+  studentId: string;
+  displayName: string;
+  codingMs: number;
+  activeRatio: number;
+  trickyRatio: number;
+  hintsReceived: number;
+  hintsRead: number;
+  endedAt: number | null;
+}
+
+export interface ActiveSessionSummary {
+  id: string;
+  roomCode: string;
+  title: string;
+  assignmentName: string;
+  instructorName: string;
+  studentCount: number;
+  stuckCount: number;
+  pulse: ClassPulsePayload[];
 }
 
 export interface IntegrityPair {
@@ -215,6 +280,7 @@ export interface ServerToClientEvents {
   [EVENTS.PAIR_ASSIGNED]: (assignment: PairAssignment) => void;
   [EVENTS.PAIR_SWAP]: (assignment: PairAssignment) => void;
   [EVENTS.REPLAY_DATA]: (data: ReplayData) => void;
+  [EVENTS.CLASS_PULSE]: (data: ClassPulsePayload) => void;
   [EVENTS.ERROR]: (data: { message: string }) => void;
 }
 
@@ -255,5 +321,6 @@ export const EVENTS = {
   SESSION_INFO: "session:info",
   SESSION_ENDED: "session:ended",
   STUDENT_JOINED: "student:joined"
-  ,END_SESSION: "instructor:endSession"
+  ,END_SESSION: "instructor:endSession",
+  CLASS_PULSE: "analytics:classPulse"
 } as const;

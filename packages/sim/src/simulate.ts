@@ -105,7 +105,9 @@ function runStudent(scenario: (typeof scenarios)[number], index: number): SimSoc
       cursorLine: content.split("\n").length,
       timestamp: Date.now(),
       idleMs: stuck ? Date.now() - lastProgress + 70_000 : Math.floor(Math.random() * 3500),
-      errorCount: stuck ? 2 : 0
+      errorCount: stuck ? 2 : 0,
+      selectionStartLine: content.split("\n").length,
+      selectionEndLine: content.split("\n").length
     });
   }, 2000);
 

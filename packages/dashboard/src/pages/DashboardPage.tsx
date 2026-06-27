@@ -8,9 +8,9 @@ import { supabase } from "../lib/supabase";
 
 export function DashboardPage() {
   const navigate = useNavigate();
-  const [sessions, setSessions] = useState<ClassroomState[]>([]);
-  const [title, setTitle] = useState("Algorithms lab");
-  const [assignmentName, setAssignmentName] = useState("Recursion practice");
+  const [sessions, setSessions] = useState<ClassroomState[]>();
+  const [title, setTitle] = useState("");
+  const [assignmentName, setAssignmentName] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -31,7 +31,7 @@ export function DashboardPage() {
     <div className="app-shell">
       <aside className="sidebar">
         <Logo />
-        <nav><a className="active"><RadioTower size={17} /> Sessions</a><a><Users size={17} /> Students</a></nav>
+        <nav><a className="active"><RadioTower size={17} /> Sessions</a><button type="button" onClick={() => navigate("/warroom")}><Users size={17} /> War room</button></nav>
         <button className="sidebar-foot" onClick={() => supabase.auth.signOut()}><span className="avatar small-avatar">IN</span><div><strong>Instructor</strong><small>Sign out</small></div></button>
       </aside>
       <main className="dashboard-page">
@@ -40,14 +40,14 @@ export function DashboardPage() {
         <section className="create-session">
           <div className="create-copy"><span className="create-icon"><Plus /></span><div><h2>Create a live session</h2><p>Students join with the room code from their VS Code extension.</p></div></div>
           <div className="create-fields">
-            <label>Session name<input value={title} onChange={(event) => setTitle(event.target.value)} /></label>
-            <label>Assignment<input value={assignmentName} onChange={(event) => setAssignmentName(event.target.value)} /></label>
-            <button className="button primary" onClick={createSession} type="button">Launch room <ArrowRight size={17} /></button>
+            <label>Session name<input placeholder="e.g. Week 4 lab" value={title} onChange={(event) => setTitle(event.target.value)} /></label>
+            <label>Assignment<input placeholder="e.g. Graph traversal" value={assignmentName} onChange={(event) => setAssignmentName(event.target.value)} /></label>
+            <button className="button primary" disabled={!title.trim() || !assignmentName.trim()} onClick={createSession} type="button">Launch room <ArrowRight size={17} /></button>
           </div>
         </section>
         <section className="session-list">
-          <div className="list-heading"><div><h2>Your sessions</h2><p>Live and completed sessions stored securely in Supabase.</p></div><span>{sessions.length} total</span></div>
-          {sessions.length === 0 ? (
+          <div className="list-heading"><div><h2>Your sessions</h2><p>Live and completed sessions stored securely in Supabase.</p></div>{sessions && <span>{sessions.length} total</span>}</div>
+          {sessions === undefined ? <div className="empty-state">Loading your sessions…</div> : sessions.length === 0 ? (
             <div className="empty-state"><RadioTower /><h3>No sessions yet</h3><p>Create your first room above and share its generated code.</p></div>
           ) : sessions.map((session) => (
             <button className="session-row" onClick={() => navigate(`/session/${session.roomCode}`)} type="button" key={session.roomCode}>

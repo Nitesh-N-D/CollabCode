@@ -49,6 +49,12 @@ export async function listSessions(instructorId: string): Promise<SessionRow[]> 
     .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
 }
 
+export async function listActiveSessions(): Promise<SessionRow[]> {
+  const { data, error } = await admin.from("sessions").select("*").eq("active", true);
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function canManageSession(sessionId: string, instructorId: string): Promise<boolean> {
   const { data: owned, error } = await admin.from("sessions").select("id")
     .eq("id", sessionId).eq("instructor_id", instructorId).maybeSingle();
@@ -151,4 +157,25 @@ export async function loadEvents(sessionId: string, studentKey?: string): Promis
   const { data, error } = await query;
   if (error) throw error;
   return (data ?? []).map((row) => row.payload as SessionEvent);
+}
+
+export async function loadHints(sessionId: string, studentKey?: string) {
+  let query = admin.from("hints").select("id,target_student_key,message,code_snippet,instructor_name,sent_at")
+    .eq("session_id", sessionId).order("sent_at", { ascending: true });
+  if (studentKey) query = query.or(`target_student_key.is.null,target_student_key.eq.${studentKey}`);
+  const { data, error } = await query;
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function loadHintReadIds(sessionId: string, studentKey: string): Promise<string[]> {
+  const { data: hints, error: hintError } = await admin.from("hints").select("id")
+    .eq("session_id", sessionId);
+  if (hintError) throw hintError;
+  const ids = (hints ?? []).map((hint) => hint.id);
+  if (!ids.length) return [];
+  const { data, error } = await admin.from("hint_reads").select("hint_id")
+    .eq("student_key", studentKey).in("hint_id", ids);
+  if (error) throw error;
+  return (data ?? []).map((row) => row.hint_id);
 }

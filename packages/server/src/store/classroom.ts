@@ -105,6 +105,10 @@ export class ClassroomStore {
       stuckFlag: existing?.stuckFlag ?? false,
       helpRequested: existing?.helpRequested ?? false,
       connected: true,
+      selectionStartLine: existing?.selectionStartLine ?? 0,
+      selectionEndLine: existing?.selectionEndLine ?? 0,
+      focusProtected: existing?.focusProtected ?? false,
+      editRate: existing?.editRate ?? 0,
       socketId,
       pairPartnerId: existing?.pairPartnerId,
       pairRole: existing?.pairRole,
@@ -126,6 +130,14 @@ export class ClassroomStore {
         socketId ?? ""
       );
     }
+    const previousSnapshot = [...student.sessionEvents].reverse().find((event) => event.type === "snapshot");
+    const elapsedMinutes = previousSnapshot
+      ? Math.max((payload.timestamp - previousSnapshot.timestamp) / 60_000, 1 / 60)
+      : 1;
+    const changed = previousSnapshot?.content !== payload.content;
+    const editRate = changed ? Math.min(60, 1 / elapsedMinutes) : 0;
+    const focusProtected = editRate > 3 && payload.idleMs < 10_000
+      && student.stuckScore < 20 && (payload.errorCount ?? 0) === 0;
     Object.assign(student, {
       displayName: payload.displayName || student.displayName,
       fileName: payload.fileName,
@@ -135,6 +147,10 @@ export class ClassroomStore {
       lastSeen: payload.timestamp,
       idleMs: payload.idleMs,
       errorCount: payload.errorCount ?? student.errorCount,
+      selectionStartLine: payload.selectionStartLine ?? payload.cursorLine,
+      selectionEndLine: payload.selectionEndLine ?? payload.cursorLine,
+      editRate,
+      focusProtected,
       connected: true,
       socketId: socketId ?? student.socketId,
       status: payload.idleMs > 60_000 ? "idle" : "active"
@@ -333,6 +349,7 @@ export class ClassroomStore {
       heatmap: [...buckets.values()]
         .filter((item) => item.struggleCount > 0)
         .sort((a, b) => b.totalIdleMs - a.totalIdleMs),
+      timeline: [],
       generatedAt: Date.now()
     };
   }

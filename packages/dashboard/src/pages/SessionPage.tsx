@@ -25,12 +25,13 @@ import {
   type StuckAlert
 } from "@collabcode/shared";
 import { CodeViewer } from "../components/CodeViewer";
+import { CommandPalette, type PaletteCommand } from "../components/CommandPalette";
 import { Logo } from "../components/Logo";
 import { ReplayModal } from "../components/ReplayModal";
 import { StudentCard } from "../components/StudentCard";
 import { getSocket } from "../lib/socket";
 import { accessToken } from "../lib/supabase";
-import { api } from "../lib/api";
+import { api, downloadExport } from "../lib/api";
 
 type Filter = "all" | "active" | "attention" | "offline";
 
@@ -39,7 +40,7 @@ export function SessionPage() {
   const [state, setState] = useState<ClassroomState>({
     id: "",
     roomCode,
-    title: `${roomCode} Live Lab`,
+    title: "",
     assignmentName: "",
     instructorId: "",
     instructorName: "",
@@ -49,8 +50,9 @@ export function SessionPage() {
     students: [],
     hints: [],
     alerts: [],
-    createdAt: Date.now()
+    createdAt: 0
   });
+  const [stateLoaded, setStateLoaded] = useState(false);
   const [connected, setConnected] = useState(false);
   const [filter, setFilter] = useState<Filter>("all");
   const [query, setQuery] = useState("");
@@ -63,6 +65,7 @@ export function SessionPage() {
   const [pairA, setPairA] = useState("");
   const [pairB, setPairB] = useState("");
   const [instructorEmail, setInstructorEmail] = useState("");
+  const [focusMode, setFocusMode] = useState(false);
 
   useEffect(() => {
     const socket = getSocket();
@@ -72,7 +75,7 @@ export function SessionPage() {
         roomCode, instructorName: "Instructor", token: await accessToken()
       });
     };
-    const onState = (next: ClassroomState) => setState(next);
+    const onState = (next: ClassroomState) => { setState(next); setStateLoaded(true); };
     const onStudent = (student: StudentState) => {
       setState((current) => ({
         ...current,
@@ -129,6 +132,33 @@ export function SessionPage() {
   const stuckCount = state.students.filter((student) => student.stuckFlag).length;
   const activeCount = state.students.filter((student) => student.status === "active").length;
   const helpCount = state.students.filter((student) => student.helpRequested).length;
+  const commands = useMemo<PaletteCommand[]>(() => [
+    { id: "focus", label: "Toggle Focus Mode", detail: "Use J/K to move and H to target a hint", run: () => setFocusMode((value) => !value) },
+    { id: "broadcast", label: "Broadcast hint to current room", run: () => { setTargetId(""); document.querySelector<HTMLTextAreaElement>(".control-panel textarea")?.focus(); } },
+    { id: "analytics", label: `Open analytics for ${roomCode}`, run: () => { window.location.assign(`/analytics/${roomCode}`); } },
+    { id: "json", label: "Export current session as JSON", run: () => downloadExport(roomCode, "json") },
+    { id: "csv", label: "Export current session as CSV", run: () => downloadExport(roomCode, "csv") },
+    { id: "invite", label: "Invite co-instructor", run: () => document.querySelector<HTMLInputElement>('input[type="email"]')?.focus() },
+    { id: "end", label: "End current session", run: () => {
+      if (window.confirm("End this live session for every student?")) getSocket().emit(EVENTS.END_SESSION, { roomCode });
+    } }
+  ], [roomCode]);
+
+  useEffect(() => {
+    if (!focusMode) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+      const index = Math.max(0, state.students.findIndex((student) => student.studentId === selected?.studentId));
+      if (event.key.toLowerCase() === "j") setSelected(state.students[Math.min(index + 1, state.students.length - 1)]);
+      if (event.key.toLowerCase() === "k") setSelected(state.students[Math.max(index - 1, 0)]);
+      if (event.key.toLowerCase() === "h" && selected) {
+        setTargetId(selected.studentId);
+        setFocusMode(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [focusMode, selected, state.students]);
 
   const sendHint = useCallback(() => {
     if (!hint.trim()) return;
@@ -152,12 +182,14 @@ export function SessionPage() {
     setNotice("Pair assigned. Roles will swap automatically.");
   }
 
+  if (!stateLoaded) return <div className="app-loading">Connecting to room {roomCode}…</div>;
+
   return (
-    <div className="session-shell">
+    <div className={`session-shell ${focusMode ? "focus-mode" : ""}`}>
       <header className="session-nav">
         <div><Link className="icon-button" to="/dashboard"><ArrowLeft size={18} /></Link><Logo /></div>
-        <div className="live-title"><span className={connected ? "live-dot" : "offline-dot"} /><div><strong>{state.title}</strong><small>{connected ? "Live connection" : "Reconnecting"}</small></div></div>
-        <div><Link className="button secondary small" to={`/analytics/${roomCode}`}><ChartNoAxesCombined size={16} /> Analytics</Link><span className="room-pill">{roomCode}</span><button className="icon-button" onClick={() => navigator.clipboard.writeText(roomCode)} type="button"><Copy size={16} /></button></div>
+        <div className="live-title"><span className={connected ? "live-dot" : "offline-dot"} /><div><strong>{state.title}</strong><small>{connected ? "Live connection" : "Reconnecting"}</small></div><span className="class-pulse" aria-label="Real class activity">{state.students.slice(0, 12).map((student) => <i style={{ height: `${Math.max(3, Math.min(18, student.editRate * 2))}px` }} key={student.studentId} />)}</span></div>
+        <div><CommandPalette commands={commands} /><Link className="button secondary small" to={`/analytics/${roomCode}`}><ChartNoAxesCombined size={16} /> Analytics</Link><span className="room-pill">{roomCode}</span><button className="icon-button" onClick={() => navigator.clipboard.writeText(roomCode)} type="button"><Copy size={16} /></button></div>
       </header>
       <main className="session-main">
         <section className="classroom">

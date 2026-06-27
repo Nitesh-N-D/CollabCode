@@ -6,6 +6,7 @@ import { AuthPage } from "./pages/AuthPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LandingPage } from "./pages/LandingPage";
 import { SessionPage } from "./pages/SessionPage";
+import { WarRoomPage } from "./pages/WarRoomPage";
 import { supabase } from "./lib/supabase";
 
 function Guard({ session, children }: { session: Session | null; children: ReactNode }) {
@@ -26,6 +27,7 @@ export default function App() {
     <Route path="/dashboard" element={<Guard session={session}><DashboardPage /></Guard>} />
     <Route path="/session/:roomCode" element={<Guard session={session}><SessionPage /></Guard>} />
     <Route path="/analytics/:roomCode" element={<Guard session={session}><AnalyticsPage /></Guard>} />
+    <Route path="/warroom" element={<Guard session={session}><WarRoomPage /></Guard>} />
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes></BrowserRouter>;
 }

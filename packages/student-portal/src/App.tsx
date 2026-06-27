@@ -1,9 +1,9 @@
 import { randomUUID } from "./uuid";
 import { useEffect, useState } from "react";
-import { Check, CircleHelp, RadioTower } from "lucide-react";
+import { Check, CircleHelp, Download, RadioTower } from "lucide-react";
 import { Navigate, Route, Routes, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { io } from "socket.io-client";
-import { EVENTS, type Hint, type SessionInfo } from "@collabcode/shared";
+import { EVENTS, type Hint, type ProgressReceipt, type SessionInfo } from "@collabcode/shared";
 
 const SERVER = import.meta.env.VITE_SERVER_URL ?? "http://localhost:4000";
 
@@ -36,6 +36,7 @@ function Room() {
   const [read, setRead] = useState<string[]>([]);
   const [helpSent, setHelpSent] = useState(false);
   const [error, setError] = useState("");
+  const [receipt, setReceipt] = useState<ProgressReceipt>();
   const [socket] = useState(() => io(SERVER, { autoConnect: false }));
   const [studentId] = useState(() => localStorage.getItem("collabcode.studentId") ?? randomUUID());
   useEffect(() => {
@@ -48,11 +49,26 @@ function Room() {
     socket.on(EVENTS.SESSION_INFO, setInfo);
     socket.on(EVENTS.HINT_RECEIVE, (hint) => setHints((current) => [hint, ...current]));
     socket.on(EVENTS.ERROR, ({ message }) => setError(message));
-    socket.on(EVENTS.SESSION_ENDED, () => setError("This session has ended."));
+    socket.on(EVENTS.SESSION_ENDED, async () => {
+      setConnected(false);
+      try {
+        const response = await fetch(`${SERVER}/api/progress/${code}/${studentId}`);
+        if (!response.ok) throw new Error("Receipt unavailable");
+        setReceipt(await response.json() as ProgressReceipt);
+      } catch {
+        setError("The session ended. Your personal summary is still being prepared.");
+      }
+    });
     socket.connect();
     return () => { socket.disconnect(); };
   }, [code, name, socket, studentId]);
   if (!name) return <Navigate to={`/?code=${code}`} replace />;
+  if (receipt) return <main className="join-shell"><section className="receipt">
+    <Check /><span>Session complete</span><h1>Your progress receipt</h1>
+    <p>You spent <strong>{receipt.activeRatio}%</strong> of the session in flow and <strong>{receipt.trickyRatio}%</strong> working through tricky parts. Both are a normal, useful part of learning.</p>
+    <div><span><b>{Math.round(receipt.codingMs / 60_000)}</b><small>minutes coding</small></span><span><b>{receipt.hintsRead}/{receipt.hintsReceived}</b><small>hints read</small></span></div>
+    <a className="download" href={`${SERVER}/api/export/${code}/${studentId}/json`}><Download /> Download my session</a>
+  </section></main>;
   return <main className="room-shell"><section className="status-card"><header><RadioTower/><div><h1>{info?.title ?? "Connecting…"}</h1><p>{info?.assignmentName}</p></div><span className={connected ? "online" : "offline"}>{connected ? "Connected" : "Reconnecting"}</span></header>
     {info && <div className="session-meta">Instructor: {info.instructorName} · Room {info.roomCode}</div>}
     <button className="help" disabled={helpSent || !connected} onClick={() => {

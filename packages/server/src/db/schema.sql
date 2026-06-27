@@ -65,3 +65,41 @@ create policy "instructors read owned sessions" on public.sessions for select
     select 1 from public.session_instructors si
     where si.session_id = id and si.instructor_id = auth.uid()
   ));
+
+create table if not exists public.stuck_alerts (
+  id uuid primary key default gen_random_uuid(),
+  session_id uuid not null references public.sessions(id) on delete cascade,
+  affected_keys text[] not null default '{}',
+  ai_reason text not null,
+  ai_hint text not null,
+  dismissed boolean not null default false,
+  created_at timestamptz not null default now()
+);
+create index if not exists stuck_alerts_session_idx
+  on public.stuck_alerts(session_id, created_at desc);
+
+create table if not exists public.session_analytics (
+  id bigint generated always as identity primary key,
+  session_id uuid not null references public.sessions(id) on delete cascade,
+  recorded_at timestamptz not null default now(),
+  active_count integer not null default 0,
+  stuck_count integer not null default 0,
+  idle_count integer not null default 0,
+  help_count integer not null default 0,
+  avg_stuck_score numeric(5,2) not null default 0
+);
+create index if not exists session_analytics_session_idx
+  on public.session_analytics(session_id, recorded_at);
+
+create table if not exists public.teaching_moments (
+  id uuid primary key default gen_random_uuid(),
+  session_id uuid not null references public.sessions(id) on delete cascade,
+  student_key text not null,
+  title text not null,
+  reason text not null,
+  start_at timestamptz not null,
+  end_at timestamptz not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists teaching_moments_session_idx
+  on public.teaching_moments(session_id, created_at desc);
