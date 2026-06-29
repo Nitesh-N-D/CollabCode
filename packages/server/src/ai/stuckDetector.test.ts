@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateStuckScore } from "./stuckDetector";
+import { calculateStuckScore, computeRiskTrend } from "./stuckDetector";
 
 describe("calculateStuckScore", () => {
   it("keeps active students below the stuck threshold", () => {
@@ -12,5 +12,11 @@ describe("calculateStuckScore", () => {
 
   it("prioritizes explicit help requests", () => {
     expect(calculateStuckScore(0, 500, 0, true)).toBe(100);
+  });
+
+  it("forecasts rising risk before the stuck threshold", () => {
+    expect(computeRiskTrend([12, 18, 25, 33, 42])).toBe("rising");
+    expect(computeRiskTrend([70, 62, 52, 40, 30])).toBe("falling");
+    expect(computeRiskTrend([12, 13, 12, 14, 13])).toBe("stable");
   });
 });

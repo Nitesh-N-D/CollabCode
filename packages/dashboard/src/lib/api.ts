@@ -15,9 +15,20 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
     headers: { "content-type": "application/json", authorization: `Bearer ${token}`, ...init?.headers }
   });
-  if (!response.ok) throw new Error((await response.text()) || `Request failed: ${response.status}`);
+  if (!response.ok) throw new Error(await responseMessage(response, `Request failed: ${response.status}`));
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
+}
+
+async function responseMessage(response: Response, fallback: string): Promise<string> {
+  const text = await response.text();
+  if (!text) return fallback;
+  try {
+    const parsed = JSON.parse(text) as { error?: string; message?: string };
+    return parsed.error ?? parsed.message ?? fallback;
+  } catch {
+    return text.slice(0, 240);
+  }
 }
 
 export async function downloadExport(roomCode: string, format: "json" | "csv"): Promise<void> {
@@ -25,7 +36,7 @@ export async function downloadExport(roomCode: string, format: "json" | "csv"): 
   const response = await fetch(`${SERVER_URL}/api/export/${roomCode}/${format}`, {
     headers: { authorization: `Bearer ${token}` }
   });
-  if (!response.ok) throw new Error((await response.text()) || "Export failed");
+  if (!response.ok) throw new Error(await responseMessage(response, "Export failed"));
   const href = URL.createObjectURL(await response.blob());
   const anchor = document.createElement("a");
   anchor.href = href;

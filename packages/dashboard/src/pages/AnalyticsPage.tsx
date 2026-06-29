@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Download, FileWarning, Gauge, ShieldCheck, Users } from "lucide-react";
+import { ArrowLeft, Download, FileWarning, Gauge, Lightbulb, ShieldCheck, Users } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { AnalyticsReport, IntegrityReport } from "@collabcode/shared";
@@ -65,6 +65,18 @@ export function AnalyticsPage() {
             {integrity?.suspectedPairs.length ? integrity.suspectedPairs.map((pair) => (
               <article key={`${pair.student1Id}-${pair.student2Id}`}><span>{pair.similarityScore}%</span><div><strong>{pair.student1Name} and {pair.student2Name}</strong><p>{pair.evidence}</p></div></article>
             )) : <div className="clean-report"><ShieldCheck />No high-similarity coding processes detected.</div>}
+          </section>
+          <section className="integrity-card teaching-moments">
+            <div><span className="eyebrow">Teaching moments</span><h2>Recoveries worth replaying</h2><p>Automatically detected when real stuck/help signals are followed by fresh progress.</p></div>
+            {report.teachingMoments.length ? report.teachingMoments.map((moment) => (
+              <article key={moment.id}>
+                <span><Lightbulb size={18} /></span>
+                <div>
+                  <strong>{moment.title}</strong>
+                  <p>{moment.reason} {new Date(moment.startAt).toLocaleTimeString()} → {new Date(moment.endAt).toLocaleTimeString()}</p>
+                </div>
+              </article>
+            )) : <div className="clean-report"><Lightbulb />Teaching moments will appear once a student recovers from a real stuck/help signal.</div>}
           </section>
         </>}
       </main>

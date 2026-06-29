@@ -109,6 +109,7 @@ export class ClassroomStore {
       selectionEndLine: existing?.selectionEndLine ?? 0,
       focusProtected: existing?.focusProtected ?? false,
       editRate: existing?.editRate ?? 0,
+      riskTrend: existing?.riskTrend ?? "stable",
       socketId,
       pairPartnerId: existing?.pairPartnerId,
       pairRole: existing?.pairRole,

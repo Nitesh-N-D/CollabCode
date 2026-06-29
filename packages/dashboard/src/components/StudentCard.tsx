@@ -23,11 +23,7 @@ export function StudentCard({
     .map((part) => part[0])
     .join("")
     .slice(0, 2);
-  const recentIdle = student.sessionEvents.filter((event) => event.type === "snapshot")
-    .slice(-4).map((event) => event.idleMs ?? 0);
-  const riskRising = !student.stuckFlag && recentIdle.length >= 3
-    && recentIdle.every((value, index) => index === 0 || value >= recentIdle[index - 1])
-    && recentIdle[recentIdle.length - 1] >= 15_000;
+  const riskRising = !student.stuckFlag && student.riskTrend === "rising";
   return (
     <button
       className={`student-card status-${student.status} ${selected ? "selected" : ""}`}

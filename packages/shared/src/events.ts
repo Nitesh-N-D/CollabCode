@@ -131,6 +131,7 @@ export interface StudentState {
   selectionEndLine: number;
   focusProtected: boolean;
   editRate: number;
+  riskTrend: "stable" | "rising" | "falling";
   socketId?: string;
   pairPartnerId?: string;
   pairRole?: "driver" | "observer";

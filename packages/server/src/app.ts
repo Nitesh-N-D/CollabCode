@@ -215,7 +215,13 @@ export function createApp(): express.Express {
           instructorName: row.instructor_name,
           studentCount: students.filter((student) => student.connected).length,
           stuckCount: students.filter((student) => student.stuckFlag).length,
-          pulse: []
+          pulse: [{
+            roomCode: row.code,
+            timestamp: Date.now(),
+            activeCount: students.filter((student) => student.status === "active").length,
+            stuckCount: students.filter((student) => student.stuckFlag).length,
+            editRate: Math.round(students.reduce((sum, student) => sum + student.editRate, 0))
+          }]
         };
       }));
     } catch (error) { next(error); }
@@ -308,7 +314,7 @@ export function createApp(): express.Express {
           errorCount: Number(latest?.meta?.errorCount ?? 0), status: record.connected ? "active" : "offline",
           stuckScore: 0, stuckFlag: false, helpRequested: false, connected: record.connected,
           selectionStartLine: latest?.cursorLine ?? 0, selectionEndLine: latest?.cursorLine ?? 0,
-          focusProtected: false, editRate: 0,
+          focusProtected: false, editRate: 0, riskTrend: "stable",
           sessionEvents: events
         };
       });

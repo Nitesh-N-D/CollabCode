@@ -9,6 +9,8 @@ import {
 import { classroomStore } from "../store/classroom";
 
 type CollabServer = Server<ClientToServerEvents, ServerToClientEvents>;
+type RiskTrend = "stable" | "rising" | "falling";
+const scoreHistory = new Map<string, number[]>();
 
 export function calculateStuckScore(
   idleMs: number,
@@ -21,6 +23,18 @@ export function calculateStuckScore(
   const sparsePoints = contentLength < 40 && idleMs > 30_000 ? 20 : 0;
   const errorPoints = Math.min(25, errorCount * 7);
   return Math.min(100, idlePoints + sparsePoints + errorPoints);
+}
+
+export function computeRiskTrend(history: number[]): RiskTrend {
+  const points = history.slice(-5);
+  if (points.length < 3) return "stable";
+  const first = points[0];
+  const last = points[points.length - 1];
+  const slope = (last - first) / Math.max(1, points.length - 1);
+  const projectedThreeMinutes = last + slope * 12;
+  if (slope >= 4 && projectedThreeMinutes >= 60) return "rising";
+  if (slope <= -4) return "falling";
+  return "stable";
 }
 
 export function scanForStuckStudents(io: CollabServer): void {
@@ -37,8 +51,12 @@ export function scanForStuckStudents(io: CollabServer): void {
         student.errorCount,
         student.helpRequested
       );
+      const historyKey = `${room.roomCode}:${student.studentId}`;
+      const history = [...(scoreHistory.get(historyKey) ?? []), score].slice(-5);
+      scoreHistory.set(historyKey, history);
       const wasStuck = student.stuckFlag;
       const updated = classroomStore.setStuck(room.roomCode, student.studentId, score);
+      if (updated) updated.riskTrend = computeRiskTrend(history);
       if (updated) io.to(`room:${room.roomCode}:instructors`).emit(EVENTS.STUDENT_UPDATE, updated);
       if (score >= 65 && !wasStuck) {
         const alert: StuckAlert = {

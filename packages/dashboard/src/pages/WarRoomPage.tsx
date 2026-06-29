@@ -27,6 +27,9 @@ export function WarRoomPage() {
               <span><strong>{room.title}</strong><small>{room.assignmentName} · {room.instructorName}</small></span>
               <span><Users size={15} /> {room.studentCount} live</span>
               <span className={room.stuckCount ? "attention" : ""}>{room.stuckCount} need attention</span>
+              <span className="mini-pulse" aria-label="Live room pulse">{room.pulse.length
+                ? room.pulse.slice(-8).map((point) => <i style={{ height: `${Math.max(4, Math.min(22, point.editRate + point.activeCount * 2))}px` }} key={point.timestamp} />)
+                : <small>No pulse yet</small>}</span>
               <code>{room.roomCode}</code>
             </button>)}</section>}
     </main>
