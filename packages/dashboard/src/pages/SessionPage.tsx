@@ -8,6 +8,7 @@ import {
   Check,
   Copy,
   History,
+  Mic,
   Radio,
   Search,
   Send,
@@ -34,6 +35,28 @@ import { accessToken } from "../lib/supabase";
 import { api, downloadExport } from "../lib/api";
 
 type Filter = "all" | "active" | "attention" | "offline";
+
+interface SpeechRecognitionLike {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onresult: ((event: { results: ArrayLike<{ 0: { transcript: string } }> }) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+}
+
+interface SpeechRecognitionConstructor {
+  new (): SpeechRecognitionLike;
+}
+
+function speechRecognitionCtor(): SpeechRecognitionConstructor | undefined {
+  const speechWindow = window as typeof window & {
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  };
+  return speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+}
 
 export function SessionPage() {
   const roomCode = (useParams().roomCode ?? "").toUpperCase();
@@ -182,6 +205,51 @@ export function SessionPage() {
     setNotice("Pair assigned. Roles will swap automatically.");
   }
 
+  function suggestGroup() {
+    const candidates = state.students.filter((student) => student.connected);
+    if (candidates.length < 2) {
+      setNotice("Need at least two connected students for a smart group.");
+      return;
+    }
+    const ranked = candidates.slice().sort((a, b) => {
+      const aNeed = (a.helpRequested ? 40 : 0) + a.stuckScore + Math.min(30, a.idleMs / 2000);
+      const bNeed = (b.helpRequested ? 40 : 0) + b.stuckScore + Math.min(30, b.idleMs / 2000);
+      return bNeed - aNeed;
+    });
+    const driver = ranked[0];
+    const observer = ranked.find((student) =>
+      student.studentId !== driver.studentId &&
+      student.fileName === driver.fileName &&
+      student.status === "active" &&
+      student.stuckScore < driver.stuckScore
+    ) ?? ranked.find((student) => student.studentId !== driver.studentId && student.status === "active")
+      ?? ranked.find((student) => student.studentId !== driver.studentId);
+    if (!observer) return;
+    setPairA(driver.studentId);
+    setPairB(observer.studentId);
+    setNotice(`Suggested ${driver.displayName} with ${observer.displayName}: one needs momentum, one has recent flow.`);
+  }
+
+  function dictateHint() {
+    const Recognition = speechRecognitionCtor();
+    if (!Recognition) {
+      setNotice("Voice dictation is not available in this browser.");
+      return;
+    }
+    const recognition = new Recognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = navigator.language || "en-US";
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results).map((result) => result[0].transcript).join(" ").trim();
+      if (transcript) setHint((current) => `${current ? `${current.trim()} ` : ""}${transcript}`);
+    };
+    recognition.onerror = () => setNotice("Voice dictation stopped before capturing a hint.");
+    recognition.onend = () => setNotice("Voice note captured. You can edit it before sending.");
+    recognition.start();
+    setNotice("Listening for a hint...");
+  }
+
   if (!stateLoaded) return <div className="app-loading">Connecting to room {roomCode}…</div>;
 
   return (
@@ -232,6 +300,7 @@ export function SessionPage() {
             <label>Audience<select value={targetId} onChange={(event) => setTargetId(event.target.value)}><option value="">Entire class</option>{state.students.map((student) => <option value={student.studentId} key={student.studentId}>{student.displayName}</option>)}</select></label>
             <textarea placeholder="Ask one question that unlocks the next step..." value={hint} onChange={(event) => setHint(event.target.value)} />
             <div className="composer-actions">
+              {speechRecognitionCtor() && <button className="button ghost small" onClick={dictateHint} type="button"><Mic size={15} /> Dictate</button>}
               <button className="button secondary small" disabled={!targetId || aiLoading} onClick={() => askAi(targetId)} type="button"><Sparkles size={15} />{aiLoading ? "Thinking..." : "AI draft"}</button>
               <button className="button primary small" disabled={!hint.trim()} onClick={sendHint} type="button"><Send size={15} /> Send</button>
             </div>
@@ -261,6 +330,7 @@ export function SessionPage() {
             <div className="pair-fields">
               <select value={pairA} onChange={(event) => setPairA(event.target.value)}><option value="">Choose driver</option>{state.students.map((student) => <option value={student.studentId} key={student.studentId}>{student.displayName}</option>)}</select>
               <select value={pairB} onChange={(event) => setPairB(event.target.value)}><option value="">Choose observer</option>{state.students.map((student) => <option value={student.studentId} key={student.studentId}>{student.displayName}</option>)}</select>
+              <button className="button ghost full" onClick={suggestGroup} type="button">Suggest smart group</button>
             </div>
             <button className="button secondary full" onClick={assignPair} type="button">Assign pair · auto-swap</button>
           </section>

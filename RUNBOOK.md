@@ -36,6 +36,7 @@ Never expose `SUPABASE_SERVICE_ROLE_KEY` to either Vite app.
 
 ```powershell
 pnpm install
+pnpm --filter @collabcode/shared build
 pnpm typecheck
 pnpm test
 pnpm build
@@ -61,6 +62,7 @@ pnpm --filter @collabcode/student-portal dev
 - Instructor app: http://localhost:5173
 - Student portal: http://localhost:5174
 - Health check: http://localhost:4000/health
+- War room: http://localhost:5173/warroom
 
 Each authenticated instructor can create multiple rooms. Different instructors
 can run rooms concurrently. A room owner can add co-instructors by email after
@@ -73,7 +75,10 @@ those users have signed in once.
 3. Students join through the portal or the VS Code extension.
 4. Extension telemetry, hints, read receipts, replay events, and analytics are
    persisted in Supabase.
-5. The owner can end the room for every connected student.
+5. Instructors can use focus mode (`Ctrl/Cmd+K`), smart grouping, AI or voice
+   drafted hints, analytics replay, JSON/CSV exports, and the war-room view.
+6. The owner can end the room for every connected student. Students then see a
+   progress receipt and can download their own session JSON.
 
 The simulator is test-only and requires a real active room:
 
@@ -94,6 +99,9 @@ Deploy the repository root with the server Docker target/start command and set:
 - `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `GEMINI_API_KEY` (optional; deterministic Socratic fallback remains available)
+- `NODE_ENV=production`
+- `STUCK_SCAN_MS=15000`
+- `PAIR_SWAP_MS=600000`
 
 ### Dashboard (Vercel)
 
@@ -110,6 +118,15 @@ Root directory: `packages/student-portal`
 - `VITE_SERVER_URL=https://api.example.com`
 
 After deployment, update Supabase Auth redirect URLs and the backend CORS URLs.
+
+Useful production endpoints:
+
+- `GET /health`
+- `GET /api/sessions/active` for the war room
+- `GET /api/analytics/:roomCode`
+- `GET /api/export/:roomCode/json`
+- `GET /api/export/:roomCode/csv`
+- `GET /api/progress/:roomCode/:studentId`
 
 ## 7. VS Code extension
 

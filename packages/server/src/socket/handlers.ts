@@ -6,16 +6,20 @@ import {
   type Hint,
   type PairAssignment,
   type ServerToClientEvents,
-  type StuckAlert
+  type StuckAlert,
+  type StudentState,
+  type TeachingMoment
 } from "@collabcode/shared";
 import { generateHint } from "../ai/aiService";
 import { classroomStore } from "../store/classroom";
 import {
-  canManageSession, endSession, findSession, markHintRead, persistEvents, persistHint, persistStudent, verifyToken
+  canManageSession, endSession, findSession, markHintRead, persistEvents, persistHint,
+  persistStudent, persistTeachingMoment, verifyToken
 } from "../db/supabase";
 
 type CollabServer = Server<ClientToServerEvents, ServerToClientEvents>;
 type CollabSocket = Socket<ClientToServerEvents, ServerToClientEvents>;
+const teachingMomentCooldowns = new Map<string, number>();
 
 function emitState(io: CollabServer, roomCode: string): void {
   const state = classroomStore.getState(roomCode);
@@ -34,6 +38,31 @@ function isInstructorSocket(socket: CollabSocket, roomCode: string): boolean {
 
 function clean(value: string, maxLength: number): string {
   return value.replaceAll("\0", "").trim().slice(0, maxLength);
+}
+
+function detectTeachingMoment(
+  sessionId: string,
+  before: StudentState | undefined,
+  after: StudentState
+): TeachingMoment | undefined {
+  if (!before) return undefined;
+  const wasBlocked = before.helpRequested || before.stuckFlag || before.idleMs >= 45_000;
+  const recovered = after.idleMs < 15_000 && !after.stuckFlag;
+  const addedEnoughCode = after.content.length - before.content.length >= 24;
+  const cooldownKey = `${sessionId}:${after.studentId}`;
+  const lastMomentAt = teachingMomentCooldowns.get(cooldownKey) ?? 0;
+  if (!wasBlocked || !recovered || !addedEnoughCode || Date.now() - lastMomentAt < 120_000) return undefined;
+  teachingMomentCooldowns.set(cooldownKey, Date.now());
+  return {
+    id: randomUUID(),
+    sessionId,
+    studentId: after.studentId,
+    title: `${after.displayName} recovered momentum`,
+    reason: "A help/stuck signal was followed by fresh edits and a low-idle snapshot.",
+    startAt: before.lastSeen,
+    endAt: after.lastSeen,
+    createdAt: Date.now()
+  };
 }
 
 export function registerHandlers(io: CollabServer, socket: CollabSocket): void {
@@ -97,12 +126,16 @@ export function registerHandlers(io: CollabServer, socket: CollabSocket): void {
       socket.emit(EVENTS.ERROR, { message: "Join this room before sending telemetry." });
       return;
     }
+    const existing = classroomStore.getRoom(payload.roomCode)?.students.get(payload.studentId);
+    const before = existing ? { ...existing, sessionEvents: [...existing.sessionEvents] } : undefined;
     const student = classroomStore.updateSnapshot(payload, socket.id);
     const room = classroomStore.getRoom(student.roomCode);
+    const teachingMoment = room?.id ? detectTeachingMoment(room.id, before, student) : undefined;
     if (room?.id) {
       await Promise.all([
         persistStudent(room.id, student),
-        persistEvents(room.id, student.studentId, student.sessionEvents.slice(-1))
+        persistEvents(room.id, student.studentId, student.sessionEvents.slice(-1)),
+        ...(teachingMoment ? [persistTeachingMoment(teachingMoment)] : [])
       ]).catch((error) => console.error("[db] telemetry", error));
     }
     io.to(`room:${student.roomCode}:instructors`).emit(EVENTS.STUDENT_UPDATE, student);

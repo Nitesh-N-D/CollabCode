@@ -4,7 +4,7 @@ import express from "express";
 import { config } from "./config";
 import {
   canManageSession, createSession, endSession, findSession, inviteInstructor, listSessions,
-  loadAnalyticsRows, loadEvents, loadHintReadIds, loadHints, type SessionRow
+  loadAnalyticsRows, loadEvents, loadHintReadIds, loadHints, loadTeachingMoments, type SessionRow
 } from "./db/supabase";
 import { requireInstructor, type AuthRequest } from "./middleware/auth";
 import { classroomStore } from "./store/classroom";
@@ -138,7 +138,10 @@ export function createApp(): express.Express {
     try {
       const row = await findSession(String(request.params.roomCode).toUpperCase());
       if (!row || !(await canManageSession(row.id, request.user!.id))) return response.status(404).json({ error: "Session not found" });
-      const data = await loadAnalyticsRows(row.id);
+      const [data, teachingMoments] = await Promise.all([
+        loadAnalyticsRows(row.id),
+        loadTeachingMoments(row.id)
+      ]);
       const heatmap = new Map<string, { fileName: string; lineNumber: number; struggleCount: number; totalIdleMs: number }>();
       for (const { event } of data.events) {
         if (event.type !== "snapshot" || !event.fileName || event.cursorLine === undefined) continue;
@@ -190,6 +193,7 @@ export function createApp(): express.Express {
             ? Math.round(bucket.scores.reduce((sum, score) => sum + score, 0) / bucket.scores.length)
             : 0
         })),
+        teachingMoments,
         generatedAt: Date.now()
       });
     } catch (error) { next(error); }
@@ -223,10 +227,10 @@ export function createApp(): express.Express {
       if (!row || !(await canManageSession(row.id, request.user!.id))) {
         return response.status(404).json({ error: "Session not found" });
       }
-      const [analytics, events, hints] = await Promise.all([
-        loadAnalyticsRows(row.id), loadEvents(row.id), loadHints(row.id)
+      const [analytics, events, hints, teachingMoments] = await Promise.all([
+        loadAnalyticsRows(row.id), loadEvents(row.id), loadHints(row.id), loadTeachingMoments(row.id)
       ]);
-      const payload = { session: row, students: analytics.students, events, hints, exportedAt: Date.now() };
+      const payload = { session: row, students: analytics.students, events, hints, teachingMoments, exportedAt: Date.now() };
       const format = String(request.params.format);
       if (format !== "json" && format !== "csv") {
         return response.status(400).json({ error: "Export format must be json or csv" });
@@ -247,11 +251,19 @@ export function createApp(): express.Express {
       const row = await findSession(String(request.params.roomCode).toUpperCase());
       if (!row) return response.status(404).json({ error: "Session not found" });
       const studentId = sanitize(request.params.studentId, 120);
-      const [events, hints, readIds] = await Promise.all([
-        loadEvents(row.id, studentId), loadHints(row.id, studentId), loadHintReadIds(row.id, studentId)
+      const [events, hints, readIds, moments] = await Promise.all([
+        loadEvents(row.id, studentId), loadHints(row.id, studentId), loadHintReadIds(row.id, studentId),
+        loadTeachingMoments(row.id)
       ]);
       response.setHeader("content-disposition", `attachment; filename="collabcode-${row.code}-student.json"`);
-      response.json({ roomCode: row.code, studentId, events, hints, readHintIds: readIds });
+      response.json({
+        roomCode: row.code,
+        studentId,
+        events,
+        hints,
+        readHintIds: readIds,
+        teachingMoments: moments.filter((moment) => moment.studentId === studentId)
+      });
     } catch (error) { next(error); }
   });
 

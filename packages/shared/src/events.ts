@@ -191,6 +191,7 @@ export interface AnalyticsReport {
   averageIdleMs: number;
   heatmap: HeatmapEntry[];
   timeline: AnalyticsTimelinePoint[];
+  teachingMoments: TeachingMoment[];
   generatedAt: number;
 }
 

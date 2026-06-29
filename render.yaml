@@ -7,6 +7,12 @@ services:
     envVars:
       - key: PORT
         value: 4000
+      - key: NODE_ENV
+        value: production
+      - key: STUCK_SCAN_MS
+        value: 15000
+      - key: PAIR_SWAP_MS
+        value: 600000
       - key: FRONTEND_URL
         sync: false
       - key: STUDENT_PORTAL_URL

@@ -10,6 +10,8 @@ Production-oriented real-time classroom coding intelligence.
 - Backend: Express and Socket.IO
 - Persistence: Supabase PostgreSQL
 - AI hints: optional Gemini with a deterministic Socratic fallback
+- Exports, replay, teaching moments, progress receipts, smart pairing, and a
+  live war-room view are backed by persisted session events
 
 Many instructors can sign in and create multiple independent rooms at the same
 time. Room ownership and co-instructor membership are enforced by authenticated

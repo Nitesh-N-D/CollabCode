@@ -350,6 +350,7 @@ export class ClassroomStore {
         .filter((item) => item.struggleCount > 0)
         .sort((a, b) => b.totalIdleMs - a.totalIdleMs),
       timeline: [],
+      teachingMoments: [],
       generatedAt: Date.now()
     };
   }

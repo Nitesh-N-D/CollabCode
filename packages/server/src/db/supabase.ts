@@ -1,5 +1,5 @@
 import { createClient, type User } from "@supabase/supabase-js";
-import type { Hint, SessionEvent, StudentState } from "@collabcode/shared";
+import type { Hint, SessionEvent, StudentState, TeachingMoment } from "@collabcode/shared";
 import { config } from "../config";
 
 export const admin = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
@@ -148,6 +148,38 @@ export async function persistHint(sessionId: string, hint: Hint): Promise<void> 
     instructor_name: hint.instructorName, sent_at: new Date(hint.sentAt).toISOString()
   });
   if (error) throw error;
+}
+
+export async function persistTeachingMoment(moment: TeachingMoment): Promise<void> {
+  const { error } = await admin.from("teaching_moments").upsert({
+    id: moment.id,
+    session_id: moment.sessionId,
+    student_key: moment.studentId,
+    title: moment.title,
+    reason: moment.reason,
+    start_at: new Date(moment.startAt).toISOString(),
+    end_at: new Date(moment.endAt).toISOString(),
+    created_at: new Date(moment.createdAt).toISOString()
+  });
+  if (error) throw error;
+}
+
+export async function loadTeachingMoments(sessionId: string): Promise<TeachingMoment[]> {
+  const { data, error } = await admin.from("teaching_moments")
+    .select("id,session_id,student_key,title,reason,start_at,end_at,created_at")
+    .eq("session_id", sessionId)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+  return (data ?? []).map((row) => ({
+    id: row.id,
+    sessionId: row.session_id,
+    studentId: row.student_key,
+    title: row.title,
+    reason: row.reason,
+    startAt: Date.parse(row.start_at),
+    endAt: Date.parse(row.end_at),
+    createdAt: Date.parse(row.created_at)
+  }));
 }
 
 export async function loadEvents(sessionId: string, studentKey?: string): Promise<SessionEvent[]> {
