@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, Plus, RadioTower, ServerOff, Users } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { ArrowRight, Check, Plus, RadioTower, ServerOff, Users } from "lucide-react";
+import { useLocation, useNavigate } from "react-router-dom";
 import type { ClassroomState } from "@collabcode/shared";
 import { Logo } from "../components/Logo";
 import { api } from "../lib/api";
@@ -8,6 +8,7 @@ import { supabase } from "../lib/supabase";
 
 export function DashboardPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [sessions, setSessions] = useState<ClassroomState[]>();
   const [title, setTitle] = useState("");
   const [assignmentName, setAssignmentName] = useState("");
@@ -36,6 +37,9 @@ export function DashboardPage() {
       </aside>
       <main className="dashboard-page">
         <header className="page-header"><div><span className="eyebrow">Instructor workspace</span><h1>Good to see you.</h1><p>Start a room or resume a classroom already in motion.</p></div></header>
+        {typeof location.state === "object" && location.state && "notice" in location.state && (
+          <div className="success-banner"><Check size={18} />{String(location.state.notice)}</div>
+        )}
         {error && <div className="offline-banner"><ServerOff size={18} />{error}</div>}
         <section className="create-session">
           <div className="create-copy"><span className="create-icon"><Plus /></span><div><h2>Create a live session</h2><p>Students join with the room code from their VS Code extension.</p></div></div>
@@ -50,10 +54,12 @@ export function DashboardPage() {
           {sessions === undefined ? <div className="empty-state">Loading your sessions…</div> : sessions.length === 0 ? (
             <div className="empty-state"><RadioTower /><h3>No sessions yet</h3><p>Create your first room above and share its generated code.</p></div>
           ) : sessions.map((session) => (
-            <button className="session-row" onClick={() => navigate(`/session/${session.roomCode}`)} type="button" key={session.roomCode}>
+            <button className="session-row" onClick={() => navigate(session.active
+              ? `/session/${session.roomCode}`
+              : `/analytics/${session.roomCode}`)} type="button" key={session.roomCode}>
               <span className="session-symbol"><RadioTower size={18} /></span>
               <span><strong>{session.title}</strong><small>Created {new Date(session.createdAt).toLocaleString()}</small></span>
-              <span className="room-code">{session.roomCode}</span>
+              <span className={`room-code ${session.active ? "" : "ended"}`}>{session.active ? session.roomCode : "Completed"}</span>
               <span>{session.students.length} students</span>
               <ArrowRight size={17} />
             </button>

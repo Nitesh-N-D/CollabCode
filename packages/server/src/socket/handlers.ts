@@ -356,6 +356,9 @@ export function registerHandlers(io: CollabServer, socket: CollabSocket): void {
       io.to(`room:${normalized}:students`).emit(EVENTS.SESSION_ENDED, {
         roomCode: normalized, endedAt: room.endedAt
       });
+      io.to(`room:${normalized}:instructors`).emit(EVENTS.SESSION_ENDED, {
+        roomCode: normalized, endedAt: room.endedAt
+      });
     } catch {
       socket.emit(EVENTS.ERROR, { message: "Only the room owner can end this session." });
     }

@@ -16,7 +16,7 @@ import {
   Users,
   X
 } from "lucide-react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   EVENTS,
   type ClassroomState,
@@ -61,6 +61,7 @@ function speechRecognitionCtor(): SpeechRecognitionConstructor | undefined {
 
 export function SessionPage() {
   const roomCode = (useParams().roomCode ?? "").toUpperCase();
+  const navigate = useNavigate();
   const [state, setState] = useState<ClassroomState>({
     id: "",
     roomCode,
@@ -122,6 +123,13 @@ export function SessionPage() {
       setAiLoading(false);
     };
     const onReplay = (data: ReplayData) => setReplay(data);
+    const onSessionEnded = ({ roomCode: endedRoom }: { roomCode: string; endedAt: number }) => {
+      if (endedRoom.toUpperCase() !== roomCode) return;
+      navigate("/dashboard", {
+        replace: true,
+        state: { notice: `Session ${endedRoom} ended successfully.` }
+      });
+    };
     socket.on("connect", join);
     socket.on("disconnect", () => setConnected(false));
     socket.on(EVENTS.CLASSROOM_STATE, onState);
@@ -130,6 +138,7 @@ export function SessionPage() {
     socket.on(EVENTS.HINT_SENT, onHint);
     socket.on(EVENTS.AI_HINT_RESULT, onAi);
     socket.on(EVENTS.REPLAY_DATA, onReplay);
+    socket.on(EVENTS.SESSION_ENDED, onSessionEnded);
     socket.connect();
     if (socket.connected) void join();
     return () => {
@@ -140,9 +149,10 @@ export function SessionPage() {
       socket.off(EVENTS.HINT_SENT, onHint);
       socket.off(EVENTS.AI_HINT_RESULT, onAi);
       socket.off(EVENTS.REPLAY_DATA, onReplay);
+      socket.off(EVENTS.SESSION_ENDED, onSessionEnded);
       socket.disconnect();
     };
-  }, [roomCode]);
+  }, [navigate, roomCode]);
 
   const filtered = useMemo(() => state.students.filter((student) => {
     const matchesQuery = student.displayName.toLowerCase().includes(query.toLowerCase());
