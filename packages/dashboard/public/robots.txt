@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /auth
+Disallow: /dashboard
+Disallow: /session/
+Disallow: /analytics/
+Disallow: /warroom
+
+Sitemap: /sitemap.xml

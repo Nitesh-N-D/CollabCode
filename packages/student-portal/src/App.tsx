@@ -1,6 +1,6 @@
 import { randomUUID } from "./uuid";
 import { useEffect, useState } from "react";
-import { Check, CircleHelp, Download, RadioTower } from "lucide-react";
+import { Braces, Check, CircleHelp, Download, LockKeyhole, RadioTower, ShieldCheck, Sparkles } from "lucide-react";
 import { Navigate, Route, Routes, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { io } from "socket.io-client";
 import { EVENTS, type Hint, type ProgressReceipt, type SessionInfo } from "@collabcode/shared";
@@ -14,15 +14,27 @@ function Join() {
   const [name, setName] = useState(localStorage.getItem("collabcode.name") ?? "");
   const [error, setError] = useState("");
   async function join() {
-    const response = await fetch(`${SERVER}/api/public/sessions/${roomCode}`);
-    if (!response.ok) return setError("That room is not active. Check the code with your instructor.");
-    localStorage.setItem("collabcode.name", name.trim());
-    navigate(`/room/${roomCode}?name=${encodeURIComponent(name.trim())}`);
+    setError("");
+    try {
+      const response = await fetch(`${SERVER}/api/public/sessions/${roomCode}`, {
+        signal: AbortSignal.timeout(10_000)
+      });
+      if (!response.ok) return setError("That room is not active. Check the code with your instructor.");
+      localStorage.setItem("collabcode.name", name.trim());
+      navigate(`/room/${roomCode}?name=${encodeURIComponent(name.trim())}`);
+    } catch {
+      setError("CollabCode could not reach the classroom server. Please try again.");
+    }
   }
-  return <main className="join-shell"><section><RadioTower /><h1>Join a live session</h1><p>Enter the code your instructor shared. No account is required.</p>
-    <label>Room code<input value={roomCode} maxLength={6} onChange={(e) => setRoomCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}/></label>
-    <label>Your name<input value={name} onChange={(e) => setName(e.target.value)}/></label>
-    <button disabled={roomCode.length !== 6 || !name.trim()} onClick={join}>Join session</button>{error && <small>{error}</small>}
+  return <main className="join-shell"><div className="join-aurora" /><section>
+    <div className="portal-brand"><span><Braces /></span><strong>CollabCode</strong><i>Student portal</i></div>
+    <span className="portal-kicker"><RadioTower /> Live classroom access</span>
+    <h1>Join your coding room.</h1><p>Use the private code your instructor shared. No account or password is required.</p>
+    <label>Room code<input aria-label="Six-character room code" autoCapitalize="characters" autoComplete="one-time-code" value={roomCode} maxLength={6} onChange={(e) => setRoomCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""))}/></label>
+    <label>Your name<input aria-label="Your display name" autoComplete="name" value={name} maxLength={80} onChange={(e) => setName(e.target.value)}/></label>
+    <button disabled={roomCode.length !== 6 || !name.trim()} onClick={join}>Enter live room</button>
+    {error && <small role="alert">{error}</small>}
+    <div className="portal-trust"><span><ShieldCheck /> Private by design</span><span><LockKeyhole /> No student account</span></div>
   </section></main>;
 }
 
@@ -63,8 +75,8 @@ function Room() {
     return () => { socket.disconnect(); };
   }, [code, name, socket, studentId]);
   if (!name) return <Navigate to={`/?code=${code}`} replace />;
-  if (receipt) return <main className="join-shell"><section className="receipt">
-    <Check /><span>Session complete</span><h1>Your progress receipt</h1>
+  if (receipt) return <main className="join-shell"><div className="join-aurora" /><section className="receipt">
+    <Sparkles /><span>Session complete</span><h1>Your progress receipt</h1>
     <p>You spent <strong>{receipt.activeRatio}%</strong> of the session in flow and <strong>{receipt.trickyRatio}%</strong> working through tricky parts. Both are a normal, useful part of learning.</p>
     <div><span><b>{Math.round(receipt.codingMs / 60_000)}</b><small>minutes coding</small></span><span><b>{receipt.hintsRead}/{receipt.hintsReceived}</b><small>hints read</small></span></div>
     <a className="download" href={`${SERVER}/api/export/${code}/${studentId}/json`}><Download /> Download my session</a>

@@ -1,3 +1,5 @@
+export {};
+
 const baseUrl = (process.argv[2] || process.env.LIVE_SERVER_URL || "").replace(/\/+$/, "");
 
 if (!baseUrl) {

@@ -1,24 +1,33 @@
 import { motion } from "framer-motion";
 import {
   ArrowRight,
-  BellRing,
+  BadgeCheck,
   ChartNoAxesCombined,
   CircleHelp,
   Eye,
+  Gauge,
+  GitBranch,
+  Radar,
   RadioTower,
   Rewind,
-  Sparkles
+  Sparkles,
+  ShieldCheck,
+  UsersRound
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Logo } from "../components/Logo";
 
 const features = [
-  [RadioTower, "Live class view", "See editor progress and activity signals across the entire room in real time."],
-  [Sparkles, "Stuck detection", "Surface silent struggle before it becomes a lost lab session."],
-  [BellRing, "Instant hints", "Send a private Socratic nudge or a class-wide checkpoint."],
-  [Rewind, "Session replay", "Review how a solution evolved instead of judging only the final answer."],
-  [CircleHelp, "Private help", "Give students a quiet way to ask without performing uncertainty in public."],
-  [ChartNoAxesCombined, "Class analytics", "Find the files, lines, and moments where the assignment broke down."]
+  [Radar, "Silent-drift radar", "Forecast rising struggle from real editing, idle, and error signals before a help request."],
+  [Gauge, "Room health", "Condense live flow and intervention demand into one continuously updated classroom signal."],
+  [Sparkles, "Recovery runway", "Recognize when momentum returns after a stuck moment or teaching intervention."],
+  [ShieldCheck, "Flow shields", "Protect students in deep productive flow from unnecessary class-wide interruptions."],
+  [GitBranch, "Solution divergence", "See whether solutions are evolving independently without exposing code publicly."],
+  [BadgeCheck, "Hint impact loop", "Track delivery, acknowledgement, and subsequent momentum for every intervention."],
+  [UsersRound, "Checkpoint readiness", "Know when the room is ready to regroup from live participation and risk signals."],
+  [Rewind, "Process replay", "Review how a solution evolved instead of judging only the final answer."],
+  [CircleHelp, "Private help channel", "Let students ask quietly without performing uncertainty in front of the room."],
+  [ChartNoAxesCombined, "Teaching intelligence", "Find the files, lines, and recovery moments that should reshape the next lesson."]
 ] as const;
 
 export function LandingPage() {
@@ -90,9 +99,9 @@ export function LandingPage() {
             ))}
           </div>
         </section>
-        <section className="closing"><Eye size={28} /><h2>Make silent struggle visible.</h2><p>Start a local room, launch the simulator, and watch CollabCode come alive.</p><Link className="button primary" to="/dashboard">Open instructor dashboard <ArrowRight size={17} /></Link></section>
+        <section className="closing"><Eye size={28} /><h2>Make silent struggle visible.</h2><p>Create a live room and let real classroom activity shape every signal.</p><Link className="button primary" to="/dashboard">Open instructor dashboard <ArrowRight size={17} /></Link></section>
       </main>
-      <footer className="site-footer"><Logo /><span>Real-time classroom coding intelligence.</span><a href="https://github.com" rel="noreferrer" target="_blank">GitHub</a></footer>
+      <footer className="site-footer"><Logo /><span>Real-time classroom coding intelligence.</span><span>Privacy-first by design</span></footer>
     </div>
   );
 }

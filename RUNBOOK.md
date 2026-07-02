@@ -27,10 +27,18 @@ SUPABASE_ANON_KEY=YOUR_ANON_KEY
 SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
 VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
 VITE_SUPABASE_ANON_KEY=YOUR_ANON_KEY
+VITE_PUBLIC_SITE_URL=http://localhost:5173
+VITE_GOOGLE_SITE_VERIFICATION=
 GEMINI_API_KEY=YOUR_OPTIONAL_GEMINI_KEY
 ```
 
 Never expose `SUPABASE_SERVICE_ROLE_KEY` to either Vite app.
+
+For production SEO, change `VITE_PUBLIC_SITE_URL` to the final public dashboard
+origin. Add the site in Google Search Console, select HTML-tag verification,
+copy only its token into `VITE_GOOGLE_SITE_VERIFICATION`, and redeploy. The
+build injects that tag and creates an absolute `sitemap.xml` and `robots.txt`.
+After ownership verifies, submit `/sitemap.xml` in Search Console.
 
 ## 3. Install and verify
 

@@ -12,6 +12,7 @@
     "typecheck": "turbo run typecheck",
     "sim": "pnpm --filter @collabcode/sim start",
     "verify:deployment": "pnpm --filter @collabcode/sim build && node packages/sim/dist/verifyDeployment.js",
+    "verify:web": "pnpm --filter @collabcode/sim build && node packages/sim/dist/verifyWeb.js",
     "start": "pnpm --filter @collabcode/server start"
   },
   "devDependencies": {

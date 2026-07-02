@@ -30,6 +30,7 @@ import { CommandPalette, type PaletteCommand } from "../components/CommandPalett
 import { Logo } from "../components/Logo";
 import { ReplayModal } from "../components/ReplayModal";
 import { StudentCard } from "../components/StudentCard";
+import { IntelligenceDeck } from "../components/IntelligenceDeck";
 import { getSocket } from "../lib/socket";
 import { accessToken } from "../lib/supabase";
 import { api, downloadExport } from "../lib/api";
@@ -270,6 +271,7 @@ export function SessionPage() {
               <span className="blue"><b>{helpCount}</b><small>Help</small></span>
             </div>
           </div>
+          <IntelligenceDeck state={state} onSelectStudent={setSelected} />
           {state.alerts[0] && (
             <div className={`alert-banner ${state.alerts[0].commonPattern ? "common" : ""}`}>
               <span><Sparkles size={19} /></span>
