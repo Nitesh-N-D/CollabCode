@@ -234,6 +234,26 @@ input:focus, select:focus, textarea:focus { border-color: #776be0; box-shadow: 0
 .panel-heading button { border: 0; background: none; color: #8f86e2; font-size: 10px; cursor: pointer; }
 .control-panel textarea { margin-top: 10px; font: 11px/1.6 "JetBrains Mono"; }
 .composer-actions { margin-top: 10px; display: flex; justify-content: space-between; }
+.button.danger {
+  border-color: #713945;
+  background: linear-gradient(135deg, #7f2f40, #a33d4d);
+  color: #fff5f6;
+  box-shadow: 0 10px 24px rgb(145 45 62 / 20%);
+}
+.button.danger:hover {
+  border-color: #d96879;
+  background: linear-gradient(135deg, #96384a, #bc4859);
+  color: #ffffff;
+}
+.button.danger:focus-visible {
+  outline: 3px solid rgb(255 116 137 / 30%);
+  outline-offset: 2px;
+}
+.button.danger:disabled {
+  background: #40232a;
+  color: #a77981;
+  box-shadow: none;
+}
 .pair-fields { display: grid; gap: 8px; margin-bottom: 10px; }
 .activity-list { display: grid; }
 .activity-list button { padding: 10px 0; display: flex; align-items: center; gap: 9px; border: 0; border-bottom: 1px solid #1f2734; background: transparent; text-align: left; cursor: pointer; }

@@ -321,7 +321,7 @@ export function SessionPage() {
             }} type="button">Add to this room</button>
           </section>
           <section>
-            <button className="button full" onClick={() => {
+            <button className="button danger full" onClick={() => {
               if (window.confirm("End this live session for every student?")) {
                 getSocket().emit(EVENTS.END_SESSION, { roomCode });
               }
