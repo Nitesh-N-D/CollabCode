@@ -61,7 +61,8 @@ pnpm --filter @collabcode/student-portal dev
 
 - Instructor app: http://localhost:5173
 - Student portal: http://localhost:5174
-- Health check: http://localhost:4000/health
+- Liveness: http://localhost:4000/health
+- Readiness (includes Supabase): http://localhost:4000/ready
 - War room: http://localhost:5173/warroom
 
 Each authenticated instructor can create multiple rooms. Different instructors
@@ -122,6 +123,7 @@ After deployment, update Supabase Auth redirect URLs and the backend CORS URLs.
 Useful production endpoints:
 
 - `GET /health`
+- `GET /ready` must return `200` before accepting production traffic
 - `GET /api/sessions/active` for the war room
 - `GET /api/analytics/:roomCode`
 - `GET /api/export/:roomCode/json`

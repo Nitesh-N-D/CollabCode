@@ -4,6 +4,7 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     dockerCommand: pnpm --filter @collabcode/server start
+    healthCheckPath: /ready
     envVars:
       - key: PORT
         value: 4000

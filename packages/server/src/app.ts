@@ -4,12 +4,13 @@ import express from "express";
 import { config } from "./config";
 import {
   canManageSession, createSession, endSession, findSession, inviteInstructor, listSessions,
-  loadAnalyticsRows, loadEvents, loadHintReadIds, loadHints, loadTeachingMoments, type SessionRow
+  loadAnalyticsRows, loadClassPulse, loadEvents, loadHintReadIds, loadHints, loadTeachingMoments, type SessionRow
 } from "./db/supabase";
 import { requireInstructor, type AuthRequest } from "./middleware/auth";
 import { classroomStore } from "./store/classroom";
 import { checkAcademicIntegrity } from "./ai/integrityChecker";
 import type { StudentState } from "@collabcode/shared";
+import { dependencyHealth } from "./health";
 
 function code(): string {
   return randomBytes(6).toString("base64url").replace(/[-_]/g, "A").slice(0, 6).toUpperCase();
@@ -37,11 +38,24 @@ export function createApp(): express.Express {
   const app = express();
   const requestWindows = new Map<string, { count: number; resetAt: number }>();
   app.use(cors({ origin: config.frontendOrigins, credentials: true }));
+  app.disable("x-powered-by");
+  app.use((_request, response, next) => {
+    response.setHeader("X-Content-Type-Options", "nosniff");
+    response.setHeader("X-Frame-Options", "DENY");
+    response.setHeader("Referrer-Policy", "no-referrer");
+    response.setHeader("Permissions-Policy", "camera=(), geolocation=()");
+    next();
+  });
   app.use(express.json({ limit: "2mb" }));
   app.use((request, response, next) => {
     if (request.path === "/health") return next();
     const key = request.ip || "unknown";
     const now = Date.now();
+    if (requestWindows.size > 2_000) {
+      for (const [windowKey, window] of requestWindows) {
+        if (window.resetAt <= now) requestWindows.delete(windowKey);
+      }
+    }
     const current = requestWindows.get(key);
     const entry = !current || current.resetAt <= now ? { count: 1, resetAt: now + 60_000 }
       : { count: current.count + 1, resetAt: current.resetAt };
@@ -53,7 +67,21 @@ export function createApp(): express.Express {
   });
 
   app.get("/health", (_request, response) => {
-    response.json({ status: "ok", service: "collabcode-server", persistence: "supabase", ts: Date.now() });
+    response.json({
+      status: dependencyHealth.persistence === "unavailable" ? "degraded" : "ok",
+      service: "collabcode-server",
+      persistence: dependencyHealth.persistence,
+      checkedAt: dependencyHealth.checkedAt,
+      ts: Date.now()
+    });
+  });
+
+  app.get("/ready", (_request, response) => {
+    const ready = dependencyHealth.persistence === "available";
+    response.status(ready ? 200 : 503).json({
+      ready,
+      persistence: dependencyHealth.persistence
+    });
   });
 
   app.get("/api/public/sessions/:roomCode", async (request, response, next) => {
@@ -204,9 +232,17 @@ export function createApp(): express.Express {
       const rows = (await listSessions(request.user!.id)).filter((row) =>
         row.active && (!row.expires_at || Date.parse(row.expires_at) > Date.now())
       );
-      response.json(rows.map((row) => {
+      response.json(await Promise.all(rows.map(async (row) => {
         const state = classroomStore.getState(hydrate(row).roomCode);
         const students = state?.students ?? [];
+        const persistedPulse = await loadClassPulse(row.id, row.code);
+        const currentPulse = {
+          roomCode: row.code,
+          timestamp: Date.now(),
+          activeCount: students.filter((student) => student.status === "active").length,
+          stuckCount: students.filter((student) => student.stuckFlag).length,
+          editRate: Math.round(students.reduce((sum, student) => sum + student.editRate, 0))
+        };
         return {
           id: row.id,
           roomCode: row.code,
@@ -215,15 +251,9 @@ export function createApp(): express.Express {
           instructorName: row.instructor_name,
           studentCount: students.filter((student) => student.connected).length,
           stuckCount: students.filter((student) => student.stuckFlag).length,
-          pulse: [{
-            roomCode: row.code,
-            timestamp: Date.now(),
-            activeCount: students.filter((student) => student.status === "active").length,
-            stuckCount: students.filter((student) => student.stuckFlag).length,
-            editRate: Math.round(students.reduce((sum, student) => sum + student.editRate, 0))
-          }]
+          pulse: [...persistedPulse, currentPulse].slice(-12)
         };
-      }));
+      })));
     } catch (error) { next(error); }
   });
 
@@ -322,8 +352,15 @@ export function createApp(): express.Express {
     } catch (error) { next(error); }
   });
 
+  app.use((_request, response) => {
+    response.status(404).json({ error: "Route not found" });
+  });
+
   app.use((error: unknown, _request: express.Request, response: express.Response, _next: express.NextFunction) => {
     console.error(error);
+    if (error instanceof SyntaxError && "status" in error && error.status === 400) {
+      return response.status(400).json({ error: "Malformed JSON request body" });
+    }
     response.status(500).json({ error: "The request could not be completed" });
   });
   return app;

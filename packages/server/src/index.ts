@@ -11,6 +11,7 @@ import { registerHandlers } from "./socket/handlers";
 import { assertProductionConfig, config } from "./config";
 import { listActiveSessions } from "./db/supabase";
 import { classroomStore } from "./store/classroom";
+import { setPersistenceHealth } from "./health";
 
 export function startServer(port = config.port) {
   assertProductionConfig();
@@ -24,6 +25,7 @@ export function startServer(port = config.port) {
   });
 
   void listActiveSessions().then((rows) => {
+    setPersistenceHealth(true);
     for (const row of rows) {
       if (row.expires_at && Date.parse(row.expires_at) <= Date.now()) continue;
       classroomStore.hydrateRoom({
@@ -34,7 +36,10 @@ export function startServer(port = config.port) {
       });
     }
     console.log(`[CollabCode] recovered ${rows.length} active session records`);
-  }).catch((error) => console.error("[CollabCode] session recovery failed", error));
+  }).catch((error) => {
+    setPersistenceHealth(false);
+    console.error("[CollabCode] session recovery failed", error);
+  });
 
   io.on("connection", (socket) => registerHandlers(io, socket));
   const scanTimer = setInterval(

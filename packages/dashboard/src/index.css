@@ -322,3 +322,23 @@ kbd { padding: 2px 5px; border: 1px solid #354053; border-radius: 4px; backgroun
   .analytics-heading { align-items: start; flex-direction: column; gap: 20px; }
   .analytics-cards { grid-template-columns: 1fr 1fr; }
 }
+.app-error {
+  min-height: 100vh;
+  display: grid;
+  place-content: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+  background: var(--surface, #f7f8fa);
+  color: var(--ink, #18212f);
+}
+
+.app-error p {
+  max-width: 34rem;
+  margin: 0;
+  color: var(--muted, #667085);
+}
+
+.app-error button {
+  justify-self: center;
+}

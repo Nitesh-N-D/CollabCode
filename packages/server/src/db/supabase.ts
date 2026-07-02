@@ -1,5 +1,5 @@
 import { createClient, type User } from "@supabase/supabase-js";
-import type { Hint, SessionEvent, StudentState, TeachingMoment } from "@collabcode/shared";
+import type { ClassPulsePayload, Hint, SessionEvent, StudentState, TeachingMoment } from "@collabcode/shared";
 import { config } from "../config";
 
 export const admin = createClient(config.supabaseUrl, config.supabaseServiceRoleKey, {
@@ -210,4 +210,42 @@ export async function loadHintReadIds(sessionId: string, studentKey: string): Pr
     .eq("student_key", studentKey).in("hint_id", ids);
   if (error) throw error;
   return (data ?? []).map((row) => row.hint_id);
+}
+
+export async function persistClassPulse(
+  sessionId: string,
+  pulse: ClassPulsePayload,
+  details: { idleCount: number; helpCount: number; averageStuckScore: number }
+): Promise<void> {
+  const { error } = await admin.from("session_analytics").insert({
+    session_id: sessionId,
+    recorded_at: new Date(pulse.timestamp).toISOString(),
+    active_count: pulse.activeCount,
+    stuck_count: pulse.stuckCount,
+    idle_count: details.idleCount,
+    help_count: details.helpCount,
+    edit_rate: pulse.editRate,
+    avg_stuck_score: details.averageStuckScore
+  });
+  if (error) throw error;
+}
+
+export async function loadClassPulse(
+  sessionId: string,
+  roomCode: string,
+  limit = 12
+): Promise<ClassPulsePayload[]> {
+  const { data, error } = await admin.from("session_analytics")
+    .select("recorded_at,active_count,stuck_count,edit_rate")
+    .eq("session_id", sessionId)
+    .order("recorded_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []).reverse().map((row) => ({
+    roomCode,
+    timestamp: Date.parse(row.recorded_at),
+    activeCount: row.active_count,
+    stuckCount: row.stuck_count,
+    editRate: Number(row.edit_rate ?? 0)
+  }));
 }

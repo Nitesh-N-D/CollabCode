@@ -86,8 +86,10 @@ create table if not exists public.session_analytics (
   stuck_count integer not null default 0,
   idle_count integer not null default 0,
   help_count integer not null default 0,
+  edit_rate numeric(8,2) not null default 0,
   avg_stuck_score numeric(5,2) not null default 0
 );
+alter table public.session_analytics add column if not exists edit_rate numeric(8,2) not null default 0;
 create index if not exists session_analytics_session_idx
   on public.session_analytics(session_id, recorded_at);
 

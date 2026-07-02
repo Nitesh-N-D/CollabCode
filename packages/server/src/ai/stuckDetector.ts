@@ -3,6 +3,7 @@ import type { Server } from "socket.io";
 import {
   EVENTS,
   type ClientToServerEvents,
+  type ClassPulsePayload,
   type ServerToClientEvents,
   type StuckAlert
 } from "@collabcode/shared";
@@ -11,6 +12,16 @@ import { classroomStore } from "../store/classroom";
 type CollabServer = Server<ClientToServerEvents, ServerToClientEvents>;
 type RiskTrend = "stable" | "rising" | "falling";
 const scoreHistory = new Map<string, number[]>();
+const lastPulsePersistedAt = new Map<string, number>();
+
+async function saveClassPulse(
+  sessionId: string,
+  pulse: ClassPulsePayload,
+  details: { idleCount: number; helpCount: number; averageStuckScore: number }
+): Promise<void> {
+  const { persistClassPulse } = await import("../db/supabase");
+  await persistClassPulse(sessionId, pulse, details);
+}
 
 export function calculateStuckScore(
   idleMs: number,
@@ -79,6 +90,26 @@ export function scanForStuckStudents(io: CollabServer): void {
       io.to(`room:${room.roomCode}:instructors`).emit(EVENTS.STUCK_ALERT, alert);
     }
     const stuck = room.students.filter((student) => student.stuckFlag);
+    const now = Date.now();
+    const pulse: ClassPulsePayload = {
+      roomCode: room.roomCode,
+      timestamp: now,
+      activeCount: room.students.filter((student) => student.connected && student.status === "active").length,
+      stuckCount: stuck.length,
+      editRate: Math.round(room.students.reduce((sum, student) => sum + student.editRate, 0))
+    };
+    io.to(`room:${room.roomCode}:instructors`).emit(EVENTS.CLASS_PULSE, pulse);
+    if (room.id && now - (lastPulsePersistedAt.get(room.id) ?? 0) >= 30_000) {
+      lastPulsePersistedAt.set(room.id, now);
+      const scored = room.students.map((student) => student.stuckScore);
+      void saveClassPulse(room.id, pulse, {
+        idleCount: room.students.filter((student) => student.status === "idle").length,
+        helpCount: room.students.filter((student) => student.helpRequested).length,
+        averageStuckScore: scored.length
+          ? Math.round(scored.reduce((sum, score) => sum + score, 0) / scored.length)
+          : 0
+      }).catch((error) => console.error("[db] class pulse", error));
+    }
     if (stuck.length >= 3) {
       const common: StuckAlert = {
         id: randomUUID(),

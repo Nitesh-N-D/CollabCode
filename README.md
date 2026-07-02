@@ -21,3 +21,5 @@ No production page is populated with fake students. The included simulator is
 an explicit load/testing utility and can only join a real active room code.
 
 See [RUNBOOK.md](RUNBOOK.md) for setup, verification, and deployment.
+See [EXTENSION_PUBLISHING.md](EXTENSION_PUBLISHING.md) before publishing the
+VS Code extension for public installation.

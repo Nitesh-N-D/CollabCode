@@ -3,6 +3,7 @@ import type { Server, Socket } from "socket.io";
 import {
   EVENTS,
   type ClientToServerEvents,
+  type CodeSnapshotPayload,
   type Hint,
   type PairAssignment,
   type ServerToClientEvents,
@@ -126,9 +127,24 @@ export function registerHandlers(io: CollabServer, socket: CollabSocket): void {
       socket.emit(EVENTS.ERROR, { message: "Join this room before sending telemetry." });
       return;
     }
-    const existing = classroomStore.getRoom(payload.roomCode)?.students.get(payload.studentId);
+    const safePayload: CodeSnapshotPayload = {
+      ...payload,
+      roomCode: clean(payload.roomCode, 6).toUpperCase(),
+      studentId: clean(payload.studentId, 120),
+      displayName: clean(payload.displayName, 80),
+      fileName: clean(payload.fileName, 500),
+      languageId: clean(payload.languageId, 80),
+      content: String(payload.content ?? "").replaceAll("\0", "").slice(0, 250_000),
+      cursorLine: Math.max(0, Math.min(1_000_000, Number(payload.cursorLine) || 0)),
+      selectionStartLine: Math.max(0, Math.min(1_000_000, Number(payload.selectionStartLine) || 0)),
+      selectionEndLine: Math.max(0, Math.min(1_000_000, Number(payload.selectionEndLine) || 0)),
+      idleMs: Math.max(0, Math.min(86_400_000, Number(payload.idleMs) || 0)),
+      errorCount: Math.max(0, Math.min(10_000, Number(payload.errorCount) || 0)),
+      timestamp: Number.isFinite(payload.timestamp) ? payload.timestamp : Date.now()
+    };
+    const existing = classroomStore.getRoom(safePayload.roomCode)?.students.get(safePayload.studentId);
     const before = existing ? { ...existing, sessionEvents: [...existing.sessionEvents] } : undefined;
-    const student = classroomStore.updateSnapshot(payload, socket.id);
+    const student = classroomStore.updateSnapshot(safePayload, socket.id);
     const room = classroomStore.getRoom(student.roomCode);
     const teachingMoment = room?.id ? detectTeachingMoment(room.id, before, student) : undefined;
     if (room?.id) {
@@ -224,12 +240,19 @@ export function registerHandlers(io: CollabServer, socket: CollabSocket): void {
       socket.emit(EVENTS.ERROR, { message: "Student not found." });
       return;
     }
-    const result = await generateHint(student);
-    socket.emit(EVENTS.AI_HINT_RESULT, {
-      studentId: student.studentId,
-      hint: result.hint,
-      cached: result.cached
-    });
+    try {
+      const result = await generateHint(student);
+      socket.emit(EVENTS.AI_HINT_RESULT, {
+        studentId: student.studentId,
+        hint: result.hint,
+        cached: result.cached
+      });
+    } catch (error) {
+      console.error("[ai] hint generation failed", error);
+      socket.emit(EVENTS.ERROR, {
+        message: "The AI hint service is temporarily unavailable. You can still send a manual hint."
+      });
+    }
   });
 
   socket.on(EVENTS.HINT_READ, async (payload) => {

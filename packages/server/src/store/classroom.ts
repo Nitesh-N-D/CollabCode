@@ -136,6 +136,10 @@ export class ClassroomStore {
       ? Math.max((payload.timestamp - previousSnapshot.timestamp) / 60_000, 1 / 60)
       : 1;
     const changed = previousSnapshot?.content !== payload.content;
+    const recovered = Boolean(
+      previousSnapshot && changed && payload.idleMs < 15_000
+      && payload.content.length > (previousSnapshot.content?.length ?? 0)
+    );
     const editRate = changed ? Math.min(60, 1 / elapsedMinutes) : 0;
     const focusProtected = editRate > 3 && payload.idleMs < 10_000
       && student.stuckScore < 20 && (payload.errorCount ?? 0) === 0;
@@ -156,6 +160,12 @@ export class ClassroomStore {
       socketId: socketId ?? student.socketId,
       status: payload.idleMs > 60_000 ? "idle" : "active"
     });
+    if (recovered) {
+      student.helpRequested = false;
+      student.stuckFlag = false;
+      student.stuckScore = Math.min(student.stuckScore, 20);
+      student.riskTrend = "falling";
+    }
     this.pushEvent(room.roomCode, student.studentId, {
       type: "snapshot",
       timestamp: payload.timestamp,

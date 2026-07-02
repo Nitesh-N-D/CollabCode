@@ -8,6 +8,7 @@ import { LandingPage } from "./pages/LandingPage";
 import { SessionPage } from "./pages/SessionPage";
 import { WarRoomPage } from "./pages/WarRoomPage";
 import { supabase } from "./lib/supabase";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 function Guard({ session, children }: { session: Session | null; children: ReactNode }) {
   return session ? children : <Navigate to="/auth" replace />;
@@ -21,7 +22,7 @@ export default function App() {
     return () => data.subscription.unsubscribe();
   }, []);
   if (session === undefined) return <div className="app-loading">Connecting securely…</div>;
-  return <BrowserRouter><Routes>
+  return <ErrorBoundary><BrowserRouter><Routes>
     <Route path="/" element={<LandingPage />} />
     <Route path="/auth" element={<AuthPage session={session} />} />
     <Route path="/dashboard" element={<Guard session={session}><DashboardPage /></Guard>} />
@@ -29,5 +30,5 @@ export default function App() {
     <Route path="/analytics/:roomCode" element={<Guard session={session}><AnalyticsPage /></Guard>} />
     <Route path="/warroom" element={<Guard session={session}><WarRoomPage /></Guard>} />
     <Route path="*" element={<Navigate to="/" replace />} />
-  </Routes></BrowserRouter>;
+  </Routes></BrowserRouter></ErrorBoundary>;
 }
