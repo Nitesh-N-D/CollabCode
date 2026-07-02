@@ -2,7 +2,7 @@
   "name": "collabcode-vscode",
   "displayName": "CollabCode Classroom",
   "description": "Real-time classroom coding support for students.",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "publisher": "niteshnd",
   "icon": "images/icon.png",
   "repository": {
