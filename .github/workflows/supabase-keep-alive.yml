@@ -1,0 +1,61 @@
+name: Supabase keep alive
+
+on:
+  schedule:
+    - cron: "0 0 * * 1,4"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: supabase-keep-alive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    name: Call lightweight status RPC
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+    steps:
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "${SUPABASE_URL}" || { echo "::error::SUPABASE_URL is not configured"; exit 1; }
+          test -n "${SUPABASE_ANON_KEY}" || { echo "::error::SUPABASE_ANON_KEY is not configured"; exit 1; }
+          case "${SUPABASE_URL}" in
+            https://*) ;;
+            *) echo "::error::SUPABASE_URL must use HTTPS"; exit 1 ;;
+          esac
+
+      - name: Ping Supabase get_status RPC
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_url="${SUPABASE_URL%/}"
+          response="$(
+            curl \
+              --fail-with-body \
+              --silent \
+              --show-error \
+              --retry 3 \
+              --retry-all-errors \
+              --connect-timeout 10 \
+              --max-time 30 \
+              --proto '=https' \
+              --tlsv1.2 \
+              --request GET \
+              --header "apikey: ${SUPABASE_ANON_KEY}" \
+              --header "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+              --header "Accept: application/json" \
+              "${base_url}/rest/v1/rpc/get_status"
+          )"
+          test "${response}" = "1" || {
+            echo "::error::Unexpected get_status response"
+            exit 1
+          }
+          echo "Supabase status RPC responded successfully."
