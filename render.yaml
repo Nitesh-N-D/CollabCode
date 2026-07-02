@@ -2,7 +2,7 @@ services:
   - type: web
     name: collabcode-server
     runtime: docker
-    dockerfilePath: ./Dockerfile
+    dockerfilePath: ./Dockerfile.server
     dockerCommand: pnpm --filter @collabcode/server start
     healthCheckPath: /ready
     envVars:
