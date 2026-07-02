@@ -4,6 +4,7 @@
   "description": "Real-time classroom coding support for students.",
   "version": "1.0.0",
   "publisher": "niteshnd",
+  "icon": "images/icon.png",
   "repository": {
   "type": "git",
   "url": "https://github.com/Nitesh-N-D/CollabCode"
