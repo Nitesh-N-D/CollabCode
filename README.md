@@ -35,7 +35,7 @@ https://collabcode-dashboard.vercel.app
 
 ## Student Portal
 
-https://collabcode-student.vercel.app
+https://collabcode-student-portal.vercel.app
 
 ## VS Code Extension
 
@@ -392,7 +392,7 @@ https://collabcode-dashboard.vercel.app
 
 ## Student Portal
 
-https://collabcode-student.vercel.app
+https://collabcode-student-portal.vercel.app
 
 ## VS Code Marketplace
 
