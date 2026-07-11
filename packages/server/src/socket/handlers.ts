@@ -338,29 +338,31 @@ export function registerHandlers(io: CollabServer, socket: CollabSocket): void {
     }, swapInMs).unref();
   });
 
-  socket.on(EVENTS.END_SESSION, async ({ roomCode }) => {
+  socket.on(EVENTS.END_SESSION, async ({ roomCode }, acknowledge) => {
     const normalized = roomCode.toUpperCase();
+    const fail = (message: string) => {
+      socket.emit(EVENTS.ERROR, { message });
+      acknowledge?.({ ok: false, message });
+    };
     if (socket.data.role !== "instructor" || socket.data.roomCode !== normalized) {
-      socket.emit(EVENTS.ERROR, { message: "Instructor authorization required." });
+      fail("Instructor authorization required.");
       return;
     }
     const room = classroomStore.getRoom(normalized);
     if (!room?.id || !room.instructorId || socket.data.userId !== room.instructorId) {
-      socket.emit(EVENTS.ERROR, { message: "Only the room owner can end this session." });
+      fail("Only the room owner can end this session.");
       return;
     }
     try {
       await endSession(room.id, room.instructorId);
       room.active = false;
       room.endedAt = Date.now();
-      io.to(`room:${normalized}:students`).emit(EVENTS.SESSION_ENDED, {
-        roomCode: normalized, endedAt: room.endedAt
-      });
-      io.to(`room:${normalized}:instructors`).emit(EVENTS.SESSION_ENDED, {
-        roomCode: normalized, endedAt: room.endedAt
-      });
+      const ended = { roomCode: normalized, endedAt: room.endedAt };
+      io.to(`room:${normalized}:students`).emit(EVENTS.SESSION_ENDED, ended);
+      io.to(`room:${normalized}:instructors`).emit(EVENTS.SESSION_ENDED, ended);
+      acknowledge?.({ ok: true, endedAt: room.endedAt });
     } catch {
-      socket.emit(EVENTS.ERROR, { message: "Only the room owner can end this session." });
+      fail("The session could not be ended. Please try again.");
     }
   });
 

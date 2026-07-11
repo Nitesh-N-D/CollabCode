@@ -268,6 +268,12 @@ export interface IntegrityReport {
   generatedAt: number;
 }
 
+export interface EndSessionAck {
+  ok: boolean;
+  message?: string;
+  endedAt?: number;
+}
+
 export interface ServerToClientEvents {
   [EVENTS.SESSION_INFO]: (info: SessionInfo) => void;
   [EVENTS.SESSION_ENDED]: (data: { roomCode: string; endedAt: number }) => void;
@@ -296,7 +302,7 @@ export interface ClientToServerEvents {
   [EVENTS.HINT_READ]: (payload: { roomCode: string; studentId: string; hintId: string }) => void;
   [EVENTS.ASSIGN_PAIR]: (payload: PairAssignmentPayload) => void;
   [EVENTS.REQUEST_REPLAY]: (payload: { roomCode: string; studentId: string }) => void;
-  [EVENTS.END_SESSION]: (payload: { roomCode: string }) => void;
+  [EVENTS.END_SESSION]: (payload: { roomCode: string }, acknowledge?: (result: EndSessionAck) => void) => void;
 }
 
 export const EVENTS = {

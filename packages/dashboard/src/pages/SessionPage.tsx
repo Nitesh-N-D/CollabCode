@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Activity,
   ArrowLeft,
@@ -20,6 +20,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   EVENTS,
   type ClassroomState,
+  type EndSessionAck,
   type Hint,
   type ReplayData,
   type StudentState,
@@ -91,6 +92,53 @@ export function SessionPage() {
   const [pairB, setPairB] = useState("");
   const [instructorEmail, setInstructorEmail] = useState("");
   const [focusMode, setFocusMode] = useState(false);
+  const [endSessionPending, setEndSessionPending] = useState(false);
+  const activeSessionRef = useRef(true);
+  const navigationAllowedRef = useRef(false);
+
+  useEffect(() => {
+    activeSessionRef.current = state.active;
+  }, [state.active]);
+
+  const allowNavigation = useCallback(() => {
+    navigationAllowedRef.current = true;
+  }, []);
+
+  const confirmLeaveActiveSession = useCallback(() => {
+    if (navigationAllowedRef.current || !activeSessionRef.current) return true;
+    return window.confirm(`Leave live session ${roomCode}? The room will keep running until you end it.`);
+  }, [roomCode]);
+
+  const leaveForDashboard = useCallback(() => {
+    if (!confirmLeaveActiveSession()) return;
+    allowNavigation();
+    navigate("/dashboard");
+  }, [allowNavigation, confirmLeaveActiveSession, navigate]);
+
+  useEffect(() => {
+    if (!stateLoaded || !state.active) return;
+    window.history.pushState({ collabcodeGuard: roomCode }, "", window.location.href);
+    const onPopState = () => {
+      if (navigationAllowedRef.current || !activeSessionRef.current) return;
+      if (window.confirm(`Leave live session ${roomCode}? The room will keep running until you end it.`)) {
+        allowNavigation();
+        navigate("/dashboard");
+        return;
+      }
+      window.history.pushState({ collabcodeGuard: roomCode }, "", window.location.href);
+    };
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (navigationAllowedRef.current || !activeSessionRef.current) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("popstate", onPopState);
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => {
+      window.removeEventListener("popstate", onPopState);
+      window.removeEventListener("beforeunload", onBeforeUnload);
+    };
+  }, [allowNavigation, navigate, roomCode, state.active, stateLoaded]);
 
   useEffect(() => {
     const socket = getSocket();
@@ -125,10 +173,16 @@ export function SessionPage() {
     const onReplay = (data: ReplayData) => setReplay(data);
     const onSessionEnded = ({ roomCode: endedRoom }: { roomCode: string; endedAt: number }) => {
       if (endedRoom.toUpperCase() !== roomCode) return;
+      allowNavigation();
       navigate("/dashboard", {
         replace: true,
         state: { notice: `Session ${endedRoom} ended successfully.` }
       });
+    };
+    const onError = ({ message }: { message: string }) => {
+      setAiLoading(false);
+      setEndSessionPending(false);
+      setNotice(message);
     };
     socket.on("connect", join);
     socket.on("disconnect", () => setConnected(false));
@@ -139,6 +193,7 @@ export function SessionPage() {
     socket.on(EVENTS.AI_HINT_RESULT, onAi);
     socket.on(EVENTS.REPLAY_DATA, onReplay);
     socket.on(EVENTS.SESSION_ENDED, onSessionEnded);
+    socket.on(EVENTS.ERROR, onError);
     socket.connect();
     if (socket.connected) void join();
     return () => {
@@ -150,9 +205,10 @@ export function SessionPage() {
       socket.off(EVENTS.AI_HINT_RESULT, onAi);
       socket.off(EVENTS.REPLAY_DATA, onReplay);
       socket.off(EVENTS.SESSION_ENDED, onSessionEnded);
+      socket.off(EVENTS.ERROR, onError);
       socket.disconnect();
     };
-  }, [navigate, roomCode]);
+  }, [allowNavigation, navigate, roomCode]);
 
   const filtered = useMemo(() => state.students.filter((student) => {
     const matchesQuery = student.displayName.toLowerCase().includes(query.toLowerCase());
@@ -162,6 +218,36 @@ export function SessionPage() {
     if (filter === "offline") return !student.connected;
     return true;
   }), [filter, query, state.students]);
+
+  const endSession = useCallback(async () => {
+    if (endSessionPending) return;
+    if (!window.confirm("End this live session for every student? Students will be notified and the room will close.")) return;
+    setEndSessionPending(true);
+    setNotice("Ending session...");
+    try {
+      const socket = getSocket();
+      if (!socket.connected) socket.connect();
+      const result = await new Promise<EndSessionAck>((resolve, reject) => {
+        const timeout = window.setTimeout(() => {
+          reject(new Error("The server did not confirm that the session ended. Please check your connection and try again."));
+        }, 10_000);
+        socket.emit(EVENTS.END_SESSION, { roomCode }, (ack?: EndSessionAck) => {
+          window.clearTimeout(timeout);
+          resolve(ack ?? { ok: false, message: "The server did not return an end-session confirmation." });
+        });
+      });
+      if (!result.ok) throw new Error(result.message ?? "The session could not be ended.");
+      allowNavigation();
+      navigate("/dashboard", {
+        replace: true,
+        state: { notice: `Session ${roomCode} ended successfully.` }
+      });
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "The session could not be ended. Please try again.");
+    } finally {
+      setEndSessionPending(false);
+    }
+  }, [allowNavigation, endSessionPending, navigate, roomCode]);
 
   const stuckCount = state.students.filter((student) => student.stuckFlag).length;
   const activeCount = state.students.filter((student) => student.status === "active").length;
@@ -173,10 +259,8 @@ export function SessionPage() {
     { id: "json", label: "Export current session as JSON", run: () => downloadExport(roomCode, "json") },
     { id: "csv", label: "Export current session as CSV", run: () => downloadExport(roomCode, "csv") },
     { id: "invite", label: "Invite co-instructor", run: () => document.querySelector<HTMLInputElement>('input[type="email"]')?.focus() },
-    { id: "end", label: "End current session", run: () => {
-      if (window.confirm("End this live session for every student?")) getSocket().emit(EVENTS.END_SESSION, { roomCode });
-    } }
-  ], [roomCode]);
+    { id: "end", label: "End current session", run: () => { void endSession(); } }
+  ], [endSession, roomCode]);
 
   useEffect(() => {
     if (!focusMode) return;
@@ -266,7 +350,7 @@ export function SessionPage() {
   return (
     <div className={`session-shell ${focusMode ? "focus-mode" : ""}`}>
       <header className="session-nav">
-        <div><Link className="icon-button" to="/dashboard"><ArrowLeft size={18} /></Link><Logo /></div>
+        <div><button className="icon-button" aria-label="Back to dashboard" onClick={leaveForDashboard} type="button"><ArrowLeft size={18} /></button><Logo /></div>
         <div className="live-title"><span className={connected ? "live-dot" : "offline-dot"} /><div><strong>{state.title}</strong><small>{connected ? "Live connection" : "Reconnecting"}</small></div><span className="class-pulse" aria-label="Real class activity">{state.students.slice(0, 12).map((student) => <i style={{ height: `${Math.max(3, Math.min(18, student.editRate * 2))}px` }} key={student.studentId} />)}</span></div>
         <div><CommandPalette commands={commands} /><Link className="button secondary small" to={`/analytics/${roomCode}`}><ChartNoAxesCombined size={16} /> Analytics</Link><span className="room-pill">{roomCode}</span><button className="icon-button" onClick={() => navigator.clipboard.writeText(roomCode)} type="button"><Copy size={16} /></button></div>
       </header>
@@ -331,11 +415,9 @@ export function SessionPage() {
             }} type="button">Add to this room</button>
           </section>
           <section>
-            <button className="button danger full" onClick={() => {
-              if (window.confirm("End this live session for every student?")) {
-                getSocket().emit(EVENTS.END_SESSION, { roomCode });
-              }
-            }} type="button">End session</button>
+            <button className="button danger full" disabled={endSessionPending} onClick={() => { void endSession(); }} type="button">
+              {endSessionPending ? "Ending session..." : "End session"}
+            </button>
           </section>
           <section>
             <div className="panel-heading"><div><span className="eyebrow"><Users size={14} /> Collaboration</span><h2>Pair students</h2></div></div>
