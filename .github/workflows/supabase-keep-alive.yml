@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   ping:
-    name: Call lightweight status RPC
+    name: Call keep_alive RPC
     runs-on: ubuntu-latest
     timeout-minutes: 5
     env:
@@ -32,7 +32,7 @@ jobs:
             *) echo "::error::SUPABASE_URL must use HTTPS"; exit 1 ;;
           esac
 
-      - name: Ping Supabase get_status RPC
+      - name: Ping Supabase keep_alive RPC
         shell: bash
         run: |
           set -euo pipefail
@@ -48,14 +48,12 @@ jobs:
               --max-time 30 \
               --proto '=https' \
               --tlsv1.2 \
-              --request GET \
+              --request POST \
               --header "apikey: ${SUPABASE_ANON_KEY}" \
               --header "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+              --header "Content-Type: application/json" \
               --header "Accept: application/json" \
-              "${base_url}/rest/v1/rpc/get_status"
+              --data '{}' \
+              "${base_url}/rest/v1/rpc/keep_alive"
           )"
-          test "${response}" = "1" || {
-            echo "::error::Unexpected get_status response"
-            exit 1
-          }
-          echo "Supabase status RPC responded successfully."
+          echo "Supabase keep_alive RPC responded successfully."
