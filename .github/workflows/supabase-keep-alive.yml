@@ -2,58 +2,32 @@ name: Supabase keep alive
 
 on:
   schedule:
-    - cron: "0 0 * * 1,4"
+    # Every 2 days
+    - cron: "0 12 */2 * *"
   workflow_dispatch:
 
 permissions:
   contents: read
 
-concurrency:
-  group: supabase-keep-alive
-  cancel-in-progress: false
-
 jobs:
   ping:
-    name: Call keep_alive RPC
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
       SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
     steps:
       - name: Validate required secrets
-        shell: bash
         run: |
-          set -euo pipefail
-          test -n "${SUPABASE_URL}" || { echo "::error::SUPABASE_URL is not configured"; exit 1; }
-          test -n "${SUPABASE_ANON_KEY}" || { echo "::error::SUPABASE_ANON_KEY is not configured"; exit 1; }
-          case "${SUPABASE_URL}" in
-            https://*) ;;
-            *) echo "::error::SUPABASE_URL must use HTTPS"; exit 1 ;;
-          esac
+          test -n "$SUPABASE_URL"
+          test -n "$SUPABASE_ANON_KEY"
 
-      - name: Ping Supabase keep_alive RPC
-        shell: bash
+      - name: Ping healthcheck table
         run: |
-          set -euo pipefail
-          base_url="${SUPABASE_URL%/}"
-          response="$(
-            curl \
-              --fail-with-body \
-              --silent \
-              --show-error \
-              --retry 3 \
-              --retry-all-errors \
-              --connect-timeout 10 \
-              --max-time 30 \
-              --proto '=https' \
-              --tlsv1.2 \
-              --request POST \
-              --header "apikey: ${SUPABASE_ANON_KEY}" \
-              --header "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
-              --header "Content-Type: application/json" \
-              --header "Accept: application/json" \
-              --data '{}' \
-              "${base_url}/rest/v1/rpc/keep_alive"
-          )"
-          echo "Supabase keep_alive RPC responded successfully."
+          curl --fail \
+            --silent \
+            --show-error \
+            "${SUPABASE_URL}/rest/v1/healthcheck?select=id&limit=1" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}"
