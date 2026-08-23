@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Download, FileWarning, Gauge, Lightbulb, LogOut, ShieldCheck, Users } from "lucide-react";
+import { ArrowLeft, Download, FileWarning, Gauge, Lightbulb, LogOut, ShieldCheck, UserCheck, Users } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import type { AnalyticsReport, IntegrityReport } from "@collabcode/shared";
+import type { AnalyticsReport, AttendanceRecord, IntegrityReport } from "@collabcode/shared";
 import { Logo } from "../components/Logo";
 import { api, downloadExport } from "../lib/api";
 import { supabase } from "../lib/supabase";
@@ -12,13 +12,15 @@ export function AnalyticsPage() {
   const roomCode = (useParams().roomCode ?? "").toUpperCase();
   const [report, setReport] = useState<AnalyticsReport>();
   const [integrity, setIntegrity] = useState<IntegrityReport>();
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>();
   const [error, setError] = useState("");
 
   useEffect(() => {
-    Promise.all([api.analytics(roomCode), api.integrity(roomCode)])
-      .then(([analytics, integrityReport]) => {
+    Promise.all([api.analytics(roomCode), api.integrity(roomCode), api.attendance(roomCode)])
+      .then(([analytics, integrityReport, attendanceReport]) => {
         setReport(analytics);
         setIntegrity(integrityReport);
+        setAttendance(attendanceReport.attendees);
       })
       .catch(() => setError("Analytics are unavailable. Check that the server and room are active."));
   }, [roomCode]);
@@ -79,6 +81,12 @@ export function AnalyticsPage() {
                 </div>
               </article>
             )) : <div className="clean-report"><Lightbulb />Teaching moments will appear once a student recovers from a real stuck/help signal.</div>}
+          </section>
+          <section className="attendance-card">
+            <div className="attendance-heading"><div><span className="eyebrow"><UserCheck size={14} /> Attendance</span><h2>Who attended this room</h2><p>Persisted attendance is available after the live room closes, including their last working file and session activity.</p></div><strong>{attendance?.length ?? 0} attendees</strong></div>
+            {attendance?.length ? <div className="attendance-list">{attendance.map((student) => <article key={student.studentId}>
+              <span className="avatar">{student.displayName.slice(0, 2).toUpperCase()}</span><div><strong>{student.displayName}</strong><small>{student.lastFileName}</small></div><span><small>Joined</small><b>{student.joinedAt ? new Date(student.joinedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "Recorded"}</b></span><span><small>Active</small><b>{student.activeMinutes} min</b></span><span><small>Signals</small><b>{student.snapshots} snapshots</b></span><span className={student.helpRequests ? "help-count" : ""}><small>Help</small><b>{student.helpRequests} requests</b></span>
+            </article>)}</div> : <div className="clean-report"><UserCheck />No participants were recorded for this room.</div>}
           </section>
         </>}
       </main>

@@ -196,6 +196,17 @@ export interface AnalyticsReport {
   generatedAt: number;
 }
 
+export interface AttendanceRecord {
+  studentId: string;
+  displayName: string;
+  joinedAt: number | null;
+  lastSeenAt: number | null;
+  activeMinutes: number;
+  snapshots: number;
+  helpRequests: number;
+  lastFileName: string;
+}
+
 export interface AnalyticsTimelinePoint {
   timestamp: number;
   activeCount: number;

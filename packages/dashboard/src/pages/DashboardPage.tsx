@@ -59,8 +59,8 @@ export function DashboardPage() {
               : `/analytics/${session.roomCode}`)} type="button" key={session.roomCode}>
               <span className="session-symbol"><RadioTower size={18} /></span>
               <span><strong>{session.title}</strong><small>Created {new Date(session.createdAt).toLocaleString()}</small></span>
-              <span className={`room-code ${session.active ? "" : "ended"}`}>{session.active ? session.roomCode : "Completed"}</span>
-              <span>{session.students.length} students</span>
+              <span className={`room-code ${session.active ? "" : "ended"}`}>{session.active ? session.roomCode : "View attendance"}</span>
+              <span>{session.active ? `${session.students.length} students` : "Session report"}</span>
               <ArrowRight size={17} />
             </button>
           ))}

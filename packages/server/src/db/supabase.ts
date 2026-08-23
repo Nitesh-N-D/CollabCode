@@ -94,7 +94,7 @@ export async function markHintRead(hintId: string, studentKey: string): Promise<
 export async function loadAnalyticsRows(sessionId: string) {
   const [events, students, hints] = await Promise.all([
     admin.from("events").select("student_key,payload").eq("session_id", sessionId),
-    admin.from("students").select("student_key,display_name,connected").eq("session_id", sessionId),
+    admin.from("students").select("student_key,display_name,connected,last_seen_at").eq("session_id", sessionId),
     admin.from("hints").select("id").eq("session_id", sessionId)
   ]);
   if (events.error) throw events.error;

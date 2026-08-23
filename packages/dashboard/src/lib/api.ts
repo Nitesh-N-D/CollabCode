@@ -1,5 +1,6 @@
 import type {
   ActiveSessionSummary,
+  AttendanceRecord,
   AnalyticsReport,
   ClassroomState,
   IntegrityReport,
@@ -56,6 +57,7 @@ export const api = {
   session: (roomCode: string) => request<ClassroomState>(`/api/sessions/${roomCode}`),
   analytics: (roomCode: string) =>
     request<AnalyticsReport>(`/api/analytics/${roomCode}`),
+  attendance: (roomCode: string) => request<{ roomCode: string; endedAt: number | null; attendees: AttendanceRecord[] }>(`/api/attendance/${roomCode}`),
   replay: (roomCode: string, studentId: string) =>
     request<ReplayData>(`/api/replay/${roomCode}/${studentId}`),
   integrity: (roomCode: string) =>

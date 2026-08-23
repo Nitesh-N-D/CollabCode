@@ -9,7 +9,7 @@ import {
 import { requireInstructor, type AuthRequest } from "./middleware/auth";
 import { classroomStore } from "./store/classroom";
 import { checkAcademicIntegrity } from "./ai/integrityChecker";
-import type { StudentState } from "@collabcode/shared";
+import type { AttendanceRecord, StudentState } from "@collabcode/shared";
 import { dependencyHealth } from "./health";
 
 function code(): string {
@@ -224,6 +224,34 @@ export function createApp(): express.Express {
         teachingMoments,
         generatedAt: Date.now()
       });
+    } catch (error) { next(error); }
+  });
+
+  app.get("/api/attendance/:roomCode", requireInstructor, async (request: AuthRequest, response, next) => {
+    try {
+      const row = await findSession(String(request.params.roomCode).toUpperCase());
+      if (!row || !(await canManageSession(row.id, request.user!.id))) {
+        return response.status(404).json({ error: "Session not found" });
+      }
+      const data = await loadAnalyticsRows(row.id);
+      const attendance: AttendanceRecord[] = data.students.map((student) => {
+        const events = data.events.filter((item) => item.studentKey === student.student_key).map((item) => item.event);
+        const snapshots = events.filter((event) => event.type === "snapshot");
+        const joinedAt = events.find((event) => event.type === "join")?.timestamp ?? null;
+        const latest = snapshots.at(-1);
+        const firstSnapshot = snapshots[0];
+        return {
+          studentId: student.student_key,
+          displayName: student.display_name,
+          joinedAt,
+          lastSeenAt: latest?.timestamp ?? (student.last_seen_at ? Date.parse(student.last_seen_at) : null),
+          activeMinutes: firstSnapshot && latest ? Math.max(0, Math.round((latest.timestamp - firstSnapshot.timestamp) / 60_000)) : 0,
+          snapshots: snapshots.length,
+          helpRequests: events.filter((event) => event.type === "help_request").length,
+          lastFileName: latest?.fileName ?? "No code snapshot"
+        };
+      }).sort((a, b) => (a.joinedAt ?? Number.MAX_SAFE_INTEGER) - (b.joinedAt ?? Number.MAX_SAFE_INTEGER));
+      response.json({ roomCode: row.code, endedAt: row.ended_at ? Date.parse(row.ended_at) : null, attendees: attendance });
     } catch (error) { next(error); }
   });
 
