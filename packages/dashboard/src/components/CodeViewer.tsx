@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Code2, Copy, X } from "lucide-react";
+import { Code2, Copy, X } from "lucide-react";
 import type { StudentState } from "@collabcode/shared";
 import { copyText } from "../lib/clipboard";
 
