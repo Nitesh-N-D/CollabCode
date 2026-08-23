@@ -109,6 +109,9 @@ export function createApp(): express.Express {
     try {
       const title = sanitize(request.body?.title, 120);
       const assignmentName = sanitize(request.body?.assignmentName, 160);
+      const instructorName = sanitize(request.body?.instructorName, 80)
+        || sanitize(request.user!.user_metadata?.full_name ?? request.user!.user_metadata?.name ?? request.user!.email, 80)
+        || "Instructor";
       if (!title || !assignmentName) return response.status(400).json({ error: "Title and assignment are required" });
       const expiresAt = request.body?.expiresAt ? new Date(request.body.expiresAt) : null;
       if (expiresAt && Number.isNaN(expiresAt.getTime())) return response.status(400).json({ error: "Invalid expiry date" });
@@ -117,7 +120,7 @@ export function createApp(): express.Express {
         try {
           row = await createSession({
             code: code(), instructor_id: request.user!.id,
-            instructor_name: String(request.user!.user_metadata?.full_name ?? request.user!.email ?? "Instructor"),
+            instructor_name: instructorName,
             title, assignment_name: assignmentName, active: true,
             expires_at: expiresAt?.toISOString() ?? null
           });

@@ -49,10 +49,10 @@ export async function downloadExport(roomCode: string, format: "json" | "csv"): 
 export const api = {
   sessions: () => request<ClassroomState[]>("/api/sessions"),
   activeSessions: () => request<ActiveSessionSummary[]>("/api/sessions/active"),
-  createSession: (title: string, assignmentName: string, expiresAt?: string) =>
+  createSession: (title: string, assignmentName: string, instructorName: string, expiresAt?: string) =>
     request<ClassroomState>("/api/sessions", {
       method: "POST",
-      body: JSON.stringify({ title, assignmentName, expiresAt })
+      body: JSON.stringify({ title, assignmentName, instructorName, expiresAt })
     }),
   session: (roomCode: string) => request<ClassroomState>(`/api/sessions/${roomCode}`),
   analytics: (roomCode: string) =>

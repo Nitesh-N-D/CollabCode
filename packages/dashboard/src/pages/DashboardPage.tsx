@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, Check, Plus, RadioTower, ServerOff, Users } from "lucide-react";
+import { ArrowRight, Check, LogOut, Plus, RadioTower, ServerOff, Users } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import type { ClassroomState } from "@collabcode/shared";
 import { Logo } from "../components/Logo";
@@ -12,16 +12,27 @@ export function DashboardPage() {
   const [sessions, setSessions] = useState<ClassroomState[]>();
   const [title, setTitle] = useState("");
   const [assignmentName, setAssignmentName] = useState("");
+  const [instructorName, setInstructorName] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
     api.sessions().then(setSessions).catch(() => setError("The server is offline. Start it on port 4000."));
+    supabase.auth.getUser().then(({ data }) => {
+      const user = data.user;
+      if (!user) return;
+      const profileName = user.user_metadata.full_name ?? user.user_metadata.name ?? user.email?.split("@")[0] ?? "";
+      setInstructorName(String(profileName));
+    });
   }, []);
 
   async function createSession() {
     setError("");
     try {
-      const session = await api.createSession(title, assignmentName);
+      const trimmedName = instructorName.trim();
+      if (!trimmedName) { setError("Enter the instructor name before launching a room."); return; }
+      const { error: profileError } = await supabase.auth.updateUser({ data: { full_name: trimmedName } });
+      if (profileError) { setError("Could not save your instructor name. Please try again."); return; }
+      const session = await api.createSession(title, assignmentName, trimmedName);
       navigate(`/session/${session.roomCode}`);
     } catch {
       setError("Could not create the room. Check that the server is running.");
@@ -33,20 +44,21 @@ export function DashboardPage() {
       <aside className="sidebar">
         <Logo />
         <nav><a className="active"><RadioTower size={17} /> Sessions</a><button type="button" onClick={() => navigate("/warroom")}><Users size={17} /> War room</button></nav>
-        <button className="sidebar-foot" onClick={() => { void supabase.auth.signOut().then(({ error: signOutError }) => { if (signOutError) setError("Could not sign out. Please try again."); }); }} type="button"><span className="avatar small-avatar">IN</span><div><strong>Instructor</strong><small>Sign out</small></div></button>
+        <div className="sidebar-foot"><span className="avatar small-avatar">{instructorName.slice(0, 2).toUpperCase() || "IN"}</span><div><strong>{instructorName || "Instructor"}</strong><small>Session owner</small></div></div>
       </aside>
       <main className="dashboard-page">
-        <header className="page-header"><div><span className="eyebrow">Instructor workspace</span><h1>Good to see you.</h1><p>Start a room or resume a classroom already in motion.</p></div></header>
+        <header className="page-header"><div><span className="eyebrow">Instructor workspace</span><h1>Good to see you, {instructorName || "Instructor"}.</h1><p>Start a room or resume a classroom already in motion.</p></div><button className="button secondary" onClick={() => { void supabase.auth.signOut().then(({ error: signOutError }) => { if (signOutError) setError("Could not sign out. Please try again."); }); }} type="button"><LogOut size={16} /> Sign out</button></header>
         {typeof location.state === "object" && location.state && "notice" in location.state && (
           <div className="success-banner"><Check size={18} />{String(location.state.notice)}</div>
         )}
         {error && <div className="offline-banner"><ServerOff size={18} />{error}</div>}
         <section className="create-session">
-          <div className="create-copy"><span className="create-icon"><Plus /></span><div><h2>Create a live session</h2><p>Students join with the room code from their VS Code extension.</p></div></div>
+          <div className="create-copy"><span className="create-icon"><Plus /></span><div><h2>Create a live session</h2><p>Students will see your instructor name when they join from VS Code.</p></div></div>
           <div className="create-fields">
+            <label>Instructor name<input placeholder="Your name" value={instructorName} onChange={(event) => setInstructorName(event.target.value)} /></label>
             <label>Session name<input placeholder="e.g. Week 4 lab" value={title} onChange={(event) => setTitle(event.target.value)} /></label>
             <label>Assignment<input placeholder="e.g. Graph traversal" value={assignmentName} onChange={(event) => setAssignmentName(event.target.value)} /></label>
-            <button className="button primary" disabled={!title.trim() || !assignmentName.trim()} onClick={createSession} type="button">Launch room <ArrowRight size={17} /></button>
+            <button className="button primary" disabled={!instructorName.trim() || !title.trim() || !assignmentName.trim()} onClick={createSession} type="button">Launch room <ArrowRight size={17} /></button>
           </div>
         </section>
         <section className="session-list">
