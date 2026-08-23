@@ -445,3 +445,4 @@ input, select, textarea { color: #17223b; border-color: #cfdceb; background: #ff
 .skeleton-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 18px; }.skeleton-card { min-height: 148px; padding: 20px; display: grid; align-content: end; gap: 10px; }.skeleton-card i,.skeleton-card b,.skeleton-card small { display:block; height: 13px; border-radius: 8px; background: #d9e4ef; }.skeleton-card i { width: 36px; height: 36px; margin-bottom: auto; }.skeleton-card b { width: 72%; }.skeleton-card small { width: 48%; }
 @keyframes skeleton-shimmer { to { transform: translateX(100%); } }
 @media (max-width: 720px) { .skeleton-grid { grid-template-columns: 1fr; } }
+.code-actions { display: flex; align-items: center; gap: 8px; }.copy-error { margin: 10px 0 0; color: var(--red); font-size: 12px; }

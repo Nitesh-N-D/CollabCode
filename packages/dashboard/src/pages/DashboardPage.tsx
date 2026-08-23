@@ -33,7 +33,7 @@ export function DashboardPage() {
       <aside className="sidebar">
         <Logo />
         <nav><a className="active"><RadioTower size={17} /> Sessions</a><button type="button" onClick={() => navigate("/warroom")}><Users size={17} /> War room</button></nav>
-        <button className="sidebar-foot" onClick={() => supabase.auth.signOut()}><span className="avatar small-avatar">IN</span><div><strong>Instructor</strong><small>Sign out</small></div></button>
+        <button className="sidebar-foot" onClick={() => { void supabase.auth.signOut().then(({ error: signOutError }) => { if (signOutError) setError("Could not sign out. Please try again."); }); }} type="button"><span className="avatar small-avatar">IN</span><div><strong>Instructor</strong><small>Sign out</small></div></button>
       </aside>
       <main className="dashboard-page">
         <header className="page-header"><div><span className="eyebrow">Instructor workspace</span><h1>Good to see you.</h1><p>Start a room or resume a classroom already in motion.</p></div></header>

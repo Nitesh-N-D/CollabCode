@@ -25,7 +25,7 @@ export function AnalyticsPage() {
 
   return (
     <div className="analytics-page">
-      <header className="analytics-nav"><div><Link className="icon-button" to={`/session/${roomCode}`}><ArrowLeft size={18} /></Link><Logo /></div><div><span className="room-pill">{roomCode}</span><button className="button secondary small" onClick={() => void supabase.auth.signOut()} type="button"><LogOut size={15} /> Sign out</button></div></header>
+      <header className="analytics-nav"><div><Link className="icon-button" to={`/session/${roomCode}`}><ArrowLeft size={18} /></Link><Logo /></div><div><span className="room-pill">{roomCode}</span><button className="button secondary small" onClick={() => { void supabase.auth.signOut().then(({ error: signOutError }) => { if (signOutError) setError("Could not sign out. Please try again."); }); }} type="button"><LogOut size={15} /> Sign out</button></div></header>
       <main>
         <div className="analytics-heading"><div><span className="eyebrow">Room intelligence</span><h1>Class analytics</h1><p>Review attention patterns, struggle hotspots, and process similarity.</p></div><div className="export-actions"><button className="button secondary" onClick={() => downloadExport(roomCode, "json")} type="button"><Download size={16} /> JSON</button><button className="button secondary" onClick={() => downloadExport(roomCode, "csv")} type="button"><Download size={16} /> CSV</button></div></div>
         {error && <div className="offline-banner">{error}</div>}

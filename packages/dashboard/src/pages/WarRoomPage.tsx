@@ -17,7 +17,7 @@ export function WarRoomPage() {
   }, []);
 
   return <div className="analytics-page">
-    <header className="analytics-nav"><div><Link className="icon-button" to="/dashboard"><ArrowLeft size={18} /></Link><Logo /></div><button className="button secondary small" onClick={() => void supabase.auth.signOut()} type="button"><LogOut size={15} /> Sign out</button></header>
+    <header className="analytics-nav"><div><Link className="icon-button" to="/dashboard"><ArrowLeft size={18} /></Link><Logo /></div><button className="button secondary small" onClick={() => { void supabase.auth.signOut().then(({ error: signOutError }) => { if (signOutError) setError("Could not sign out. Please try again."); }); }} type="button"><LogOut size={15} /> Sign out</button></header>
     <main>
       <div className="analytics-heading"><div><span className="eyebrow"><Activity size={14} /> Teaching team</span><h1>War room</h1><p>Every live room you own or support, in one calm view.</p></div></div>
       {error && <div className="offline-banner"><ServerOff size={18} />{error}</div>}

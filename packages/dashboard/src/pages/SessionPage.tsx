@@ -37,6 +37,7 @@ import { accessToken } from "../lib/supabase";
 import { api, downloadExport } from "../lib/api";
 import { supabase } from "../lib/supabase";
 import { LoadingSkeleton } from "../components/LoadingSkeleton";
+import { copyText } from "../lib/clipboard";
 
 type Filter = "all" | "active" | "attention" | "offline";
 
@@ -347,6 +348,21 @@ export function SessionPage() {
     setNotice("Listening for a hint...");
   }
 
+  async function copyRoomCode() {
+    try {
+      await copyText(roomCode);
+      setNotice(`Room code ${roomCode} copied.`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Could not copy the room code.");
+    }
+  }
+
+  async function signOut() {
+    const { error } = await supabase.auth.signOut();
+    if (error) { setNotice("Could not sign out. Please try again."); return; }
+    allowNavigation();
+  }
+
   if (!stateLoaded) return <main className="app-loading"><LoadingSkeleton kind="room" /></main>;
 
   return (
@@ -354,7 +370,7 @@ export function SessionPage() {
       <header className="session-nav">
         <div><button className="icon-button" aria-label="Back to dashboard" onClick={leaveForDashboard} type="button"><ArrowLeft size={18} /></button><Logo /></div>
         <div className="live-title"><span className={connected ? "live-dot" : "offline-dot"} /><div><strong>{state.title}</strong><small>{connected ? "Live connection" : "Reconnecting"}</small></div><span className="class-pulse" aria-label="Real class activity">{state.students.slice(0, 12).map((student) => <i style={{ height: `${Math.max(3, Math.min(18, student.editRate * 2))}px` }} key={student.studentId} />)}</span></div>
-        <div><CommandPalette commands={commands} /><Link className="button secondary small" to={`/analytics/${roomCode}`}><ChartNoAxesCombined size={16} /> Analytics</Link><span className="room-pill">{roomCode}</span><button className="icon-button" onClick={() => navigator.clipboard.writeText(roomCode)} type="button"><Copy size={16} /></button><button className="button secondary small" onClick={() => { allowNavigation(); void supabase.auth.signOut(); }} type="button">Sign out</button></div>
+        <div><CommandPalette commands={commands} /><Link className="button secondary small" to={`/analytics/${roomCode}`}><ChartNoAxesCombined size={16} /> Analytics</Link><span className="room-pill">{roomCode}</span><button className="icon-button" aria-label="Copy room code" onClick={() => { void copyRoomCode(); }} type="button"><Copy size={16} /></button><button className="button secondary small" onClick={() => { void signOut(); }} type="button">Sign out</button></div>
       </header>
       <main className="session-main">
         <section className="classroom">
