@@ -437,3 +437,11 @@ input, select, textarea { color: #17223b; border-color: #cfdceb; background: #ff
 .legal-list h2 { margin: 0 0 6px; font-size: 16px; }
 .legal-list p { margin: 0; color: #64748b; line-height: 1.55; font-size: 14px; }
 .legal-contact { margin: 28px 0 0; font-size: 13px; }
+.loading-skeleton { width: min(1120px, calc(100% - 44px)); margin: 32px auto; display: grid; gap: 14px; }
+.app-loading .loading-skeleton { margin: 0; }
+.skeleton-line, .skeleton-card { overflow: hidden; border-radius: 12px; background: #e7eef6; position: relative; }
+.skeleton-line::after, .skeleton-card::after { content: ""; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(90deg, transparent, rgb(255 255 255 / 75%), transparent); animation: skeleton-shimmer 1.35s infinite; }
+.skeleton-line.title { width: min(330px, 75%); height: 38px; }.skeleton-line.copy { width: min(510px, 92%); height: 16px; }
+.skeleton-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 18px; }.skeleton-card { min-height: 148px; padding: 20px; display: grid; align-content: end; gap: 10px; }.skeleton-card i,.skeleton-card b,.skeleton-card small { display:block; height: 13px; border-radius: 8px; background: #d9e4ef; }.skeleton-card i { width: 36px; height: 36px; margin-bottom: auto; }.skeleton-card b { width: 72%; }.skeleton-card small { width: 48%; }
+@keyframes skeleton-shimmer { to { transform: translateX(100%); } }
+@media (max-width: 720px) { .skeleton-grid { grid-template-columns: 1fr; } }

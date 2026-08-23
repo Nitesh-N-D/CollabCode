@@ -10,6 +10,7 @@ import { WarRoomPage } from "./pages/WarRoomPage";
 import { LegalPage } from "./pages/LegalPage";
 import { supabase } from "./lib/supabase";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { LoadingSkeleton } from "./components/LoadingSkeleton";
 
 function Guard({ session, children }: { session: Session | null; children: ReactNode }) {
   return session ? children : <Navigate to="/auth" replace />;
@@ -22,7 +23,7 @@ export default function App() {
     const { data } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
     return () => data.subscription.unsubscribe();
   }, []);
-  if (session === undefined) return <div className="app-loading">Connecting securely…</div>;
+  if (session === undefined) return <main className="app-loading"><LoadingSkeleton /></main>;
   return <ErrorBoundary><BrowserRouter><Routes>
     <Route path="/" element={<LandingPage />} />
     <Route path="/auth" element={<AuthPage session={session} />} />

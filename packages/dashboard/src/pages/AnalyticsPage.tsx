@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, Download, FileWarning, Gauge, Lightbulb, ShieldCheck, Users } from "lucide-react";
+import { ArrowLeft, Download, FileWarning, Gauge, Lightbulb, LogOut, ShieldCheck, Users } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import type { AnalyticsReport, IntegrityReport } from "@collabcode/shared";
 import { Logo } from "../components/Logo";
 import { api, downloadExport } from "../lib/api";
+import { supabase } from "../lib/supabase";
+import { LoadingSkeleton } from "../components/LoadingSkeleton";
 
 export function AnalyticsPage() {
   const roomCode = (useParams().roomCode ?? "").toUpperCase();
@@ -23,11 +25,11 @@ export function AnalyticsPage() {
 
   return (
     <div className="analytics-page">
-      <header className="analytics-nav"><div><Link className="icon-button" to={`/session/${roomCode}`}><ArrowLeft size={18} /></Link><Logo /></div><span className="room-pill">{roomCode}</span></header>
+      <header className="analytics-nav"><div><Link className="icon-button" to={`/session/${roomCode}`}><ArrowLeft size={18} /></Link><Logo /></div><div><span className="room-pill">{roomCode}</span><button className="button secondary small" onClick={() => void supabase.auth.signOut()} type="button"><LogOut size={15} /> Sign out</button></div></header>
       <main>
         <div className="analytics-heading"><div><span className="eyebrow">Room intelligence</span><h1>Class analytics</h1><p>Review attention patterns, struggle hotspots, and process similarity.</p></div><div className="export-actions"><button className="button secondary" onClick={() => downloadExport(roomCode, "json")} type="button"><Download size={16} /> JSON</button><button className="button secondary" onClick={() => downloadExport(roomCode, "csv")} type="button"><Download size={16} /> CSV</button></div></div>
         {error && <div className="offline-banner">{error}</div>}
-        {!report && !error && <div className="empty-state">Loading persisted session analytics…</div>}
+        {!report && !error && <LoadingSkeleton />}
         {report && <>
           <div className="analytics-cards">
             <article><Users /><span><small>Total students</small><strong>{report.totalStudents}</strong></span></article>

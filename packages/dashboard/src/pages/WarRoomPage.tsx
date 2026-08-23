@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
-import { Activity, ArrowLeft, RadioTower, ServerOff, Users } from "lucide-react";
+import { Activity, ArrowLeft, LogOut, RadioTower, ServerOff, Users } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import type { ActiveSessionSummary } from "@collabcode/shared";
 import { Logo } from "../components/Logo";
 import { api } from "../lib/api";
+import { supabase } from "../lib/supabase";
+import { LoadingSkeleton } from "../components/LoadingSkeleton";
 
 export function WarRoomPage() {
   const navigate = useNavigate();
@@ -15,11 +17,11 @@ export function WarRoomPage() {
   }, []);
 
   return <div className="analytics-page">
-    <header className="analytics-nav"><div><Link className="icon-button" to="/dashboard"><ArrowLeft size={18} /></Link><Logo /></div></header>
+    <header className="analytics-nav"><div><Link className="icon-button" to="/dashboard"><ArrowLeft size={18} /></Link><Logo /></div><button className="button secondary small" onClick={() => void supabase.auth.signOut()} type="button"><LogOut size={15} /> Sign out</button></header>
     <main>
       <div className="analytics-heading"><div><span className="eyebrow"><Activity size={14} /> Teaching team</span><h1>War room</h1><p>Every live room you own or support, in one calm view.</p></div></div>
       {error && <div className="offline-banner"><ServerOff size={18} />{error}</div>}
-      {rooms === undefined ? <div className="empty-state">Loading active rooms…</div>
+      {rooms === undefined ? <LoadingSkeleton />
         : rooms.length === 0 ? <div className="empty-state"><RadioTower /><h3>No rooms are live</h3><p>Active owned and co-instructor sessions will appear here.</p></div>
           : <section className="war-room-list">{rooms.map((room) =>
             <button type="button" className="war-room-row" onClick={() => navigate(`/session/${room.roomCode}`)} key={room.id}>

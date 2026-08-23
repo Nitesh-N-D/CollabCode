@@ -35,6 +35,8 @@ import { IntelligenceDeck } from "../components/IntelligenceDeck";
 import { getSocket } from "../lib/socket";
 import { accessToken } from "../lib/supabase";
 import { api, downloadExport } from "../lib/api";
+import { supabase } from "../lib/supabase";
+import { LoadingSkeleton } from "../components/LoadingSkeleton";
 
 type Filter = "all" | "active" | "attention" | "offline";
 
@@ -345,14 +347,14 @@ export function SessionPage() {
     setNotice("Listening for a hint...");
   }
 
-  if (!stateLoaded) return <div className="app-loading">Connecting to room {roomCode}…</div>;
+  if (!stateLoaded) return <main className="app-loading"><LoadingSkeleton kind="room" /></main>;
 
   return (
     <div className={`session-shell ${focusMode ? "focus-mode" : ""}`}>
       <header className="session-nav">
         <div><button className="icon-button" aria-label="Back to dashboard" onClick={leaveForDashboard} type="button"><ArrowLeft size={18} /></button><Logo /></div>
         <div className="live-title"><span className={connected ? "live-dot" : "offline-dot"} /><div><strong>{state.title}</strong><small>{connected ? "Live connection" : "Reconnecting"}</small></div><span className="class-pulse" aria-label="Real class activity">{state.students.slice(0, 12).map((student) => <i style={{ height: `${Math.max(3, Math.min(18, student.editRate * 2))}px` }} key={student.studentId} />)}</span></div>
-        <div><CommandPalette commands={commands} /><Link className="button secondary small" to={`/analytics/${roomCode}`}><ChartNoAxesCombined size={16} /> Analytics</Link><span className="room-pill">{roomCode}</span><button className="icon-button" onClick={() => navigator.clipboard.writeText(roomCode)} type="button"><Copy size={16} /></button></div>
+        <div><CommandPalette commands={commands} /><Link className="button secondary small" to={`/analytics/${roomCode}`}><ChartNoAxesCombined size={16} /> Analytics</Link><span className="room-pill">{roomCode}</span><button className="icon-button" onClick={() => navigator.clipboard.writeText(roomCode)} type="button"><Copy size={16} /></button><button className="button secondary small" onClick={() => { allowNavigation(); void supabase.auth.signOut(); }} type="button">Sign out</button></div>
       </header>
       <main className="session-main">
         <section className="classroom">
