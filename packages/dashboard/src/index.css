@@ -386,3 +386,54 @@ kbd { padding: 2px 5px; border: 1px solid #354053; border-radius: 4px; backgroun
 .app-error button {
   justify-self: center;
 }
+
+/* CollabCode conference theme: intentionally light, calm, and distinct from a code IDE. */
+:root { color: #17223b; background: #f5f8fc; --bg: #f5f8fc; --panel: #ffffff; --panel-2: #edf4fb; --border: #dbe4f0; --muted: #64748b; --purple: #5267d9; --purple-2: #4255bc; --green: #049b79; --red: #dd5265; --blue: #2879cc; }
+body { background: var(--bg); color: #17223b; }
+input, select, textarea { color: #17223b; border-color: #cfdceb; background: #fff; }
+.button.secondary, .icon-button, .command-trigger { color: #263650; border-color: #d6e1ee; background: #fff; }
+.button.ghost { color: #364b8e; border-color: #cbd4fa; background: #eff1ff; }
+.logo-mark { border-color: #aebcf6; background: linear-gradient(145deg, #5970dd, #3850b9); }
+.landing { background: radial-gradient(circle at 90% 8%, #dbeeff 0, transparent 29%), radial-gradient(circle at 5% 40%, #fce7c9 0, transparent 26%), #f8fbff; }
+.landing-nav > div { color: #52627a; }
+.hero { min-height: 850px; background-image: linear-gradient(rgb(56 80 185 / 6%) 1px, transparent 1px), linear-gradient(90deg, rgb(56 80 185 / 6%) 1px, transparent 1px); }
+.hero-glow { background: radial-gradient(circle, rgb(87 139 232 / 22%), transparent 65%); }
+.pill { color: #385272; border-color: #cfe0f1; background: rgb(255 255 255 / 82%); box-shadow: 0 8px 25px rgb(59 94 130 / 8%); }
+.hero h1 { color: #17223b; }
+.hero h1 em { color: #4057c1; }
+.hero-copy > p { color: #5e6e85; }
+.trust-row { color: #667893; }
+.trust-row span::before { color: #049b79; }
+.product-preview { border-color: #d6e3ef; background: #fff; box-shadow: 0 35px 70px rgb(40 77 122 / 16%); }
+.section-heading h2, .closing h2 { color: #17223b; }
+.steps { border-color: #dce7f2; background: #dce7f2; }
+.steps article, .feature-grid article { background: #fff; }
+.feature-grid article { border-color: #dce7f2; box-shadow: 0 12px 30px rgb(51 86 126 / 5%); }
+.feature-grid article > svg { color: #4965d4; }
+.closing { border-color: #c9d8f0; background: radial-gradient(circle at 85% 10%, #d8edff, transparent 35%), #fff; }
+.site-footer { border-color: #dce7f2; color: #65758e; }
+.site-footer a:hover { color: #4057c1; }
+.app-shell, .session-shell { background: #f5f8fc; }
+.sidebar { border-color: #dce7f2; background: #fff; }
+.sidebar nav a.active { color: #354ba8; background: #edf0ff; }
+.create-session { border-color: #cbd9ef; background: linear-gradient(125deg, #f0f5ff, #fff); }
+.create-icon { background: #5068d8; }
+.session-row, .analytics-cards article, .chart-card, .integrity-card, .war-room-row { border-color: #dce7f2; background: #fff; }
+.session-symbol { background: #edf0ff; color: #475fd0; }
+.session-nav, .analytics-nav { border-color: #dce7f2; background: rgb(255 255 255 / 92%); }
+.intelligence-deck { border-color: #d9e6f3; background: radial-gradient(circle at 100% 0, rgb(83 117 222 / 11%), transparent 34%), #fff; }
+.control-panel { background: #fff; border-color: #dce7f2; }
+.student-card, .alert-banner, .empty-class, .empty-state { border-color: #dce7f2; background: #fff; }
+.room-code, .room-pill { color: #4056bd; border-color: #c9d5fa; background: #f1f3ff; }
+.legal-page { min-height: 100vh; padding: 0 22px 80px; background: radial-gradient(circle at 90% 0, #dceeff, transparent 32%), #f7faff; }
+.legal-nav { width: min(1040px, 100%); height: 78px; margin: auto; display: flex; align-items: center; justify-content: space-between; }
+.legal-card { width: min(780px, 100%); margin: 42px auto 0; padding: clamp(28px, 6vw, 64px); border: 1px solid #d9e4f0; border-radius: 24px; background: #fff; box-shadow: 0 24px 65px rgb(42 76 118 / 10%); }
+.legal-icon { width: 48px; height: 48px; margin-bottom: 28px; display: grid; place-items: center; border-radius: 14px; color: #4058c6; background: #edf0ff; }
+.legal-card h1 { max-width: 620px; margin: 12px 0; color: #17223b; font-size: clamp(34px, 5vw, 55px); line-height: 1.03; letter-spacing: -2px; }
+.legal-lead, .legal-contact { color: #64748b; line-height: 1.7; }
+.legal-list { margin-top: 38px; display: grid; gap: 10px; }
+.legal-list article { padding: 18px; display: flex; gap: 13px; border: 1px solid #e1eaf3; border-radius: 13px; background: #fbfdff; }
+.legal-list article > svg { flex: none; margin-top: 2px; color: #049b79; }
+.legal-list h2 { margin: 0 0 6px; font-size: 16px; }
+.legal-list p { margin: 0; color: #64748b; line-height: 1.55; font-size: 14px; }
+.legal-contact { margin: 28px 0 0; font-size: 13px; }

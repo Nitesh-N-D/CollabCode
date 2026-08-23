@@ -33,6 +33,7 @@ class CollabCodeClient implements vscode.Disposable {
   private readonly hints: Hint[] = [];
   private sessionTitle = "";
   private instructorName = "";
+  private companionPanel?: vscode.WebviewPanel;
 
   constructor(private readonly context: vscode.ExtensionContext) {
     this.status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 100);
@@ -49,6 +50,24 @@ class CollabCodeClient implements vscode.Disposable {
       }),
       vscode.window.onDidChangeTextEditorSelection(() => this.sendSnapshot())
     );
+  }
+
+  openCompanion(): void {
+    if (!this.session) { void vscode.window.showWarningMessage("Join a CollabCode room first."); return; }
+    if (!this.companionPanel) {
+      this.companionPanel = vscode.window.createWebviewPanel("collabcodeCompanion", "CollabCode Session Companion", vscode.ViewColumn.Beside, { enableScripts: true, retainContextWhenHidden: true });
+      this.companionPanel.webview.html = this.companionHtml();
+      this.companionPanel.webview.onDidReceiveMessage((message: { type: string }) => {
+        if (message.type === "requestHelp") this.requestHelp();
+        if (message.type === "refresh") this.postCompanion();
+      });
+      this.companionPanel.onDidDispose(() => { this.companionPanel = undefined; });
+    } else this.companionPanel.reveal(vscode.ViewColumn.Beside, true);
+    this.postCompanion();
+  }
+
+  showPrivacy(): void {
+    void vscode.window.showInformationMessage("While joined, CollabCode sends the active-file snapshot, cursor range, language, idle time, and error count to your instructor's room. Your code is not broadcast to classmates. Export My Session creates your local copy.");
   }
 
   async join(): Promise<void> {
@@ -105,6 +124,7 @@ class CollabCodeClient implements vscode.Disposable {
       this.instructorName = info.instructorName;
       this.status.text = `$(broadcast) CollabCode: ${info.roomCode} · ${info.instructorName}`;
       this.openHintPanel();
+      this.openCompanion();
       this.postPanel({ type: "connected", info });
       void vscode.window.showInformationMessage(
         `Connected to ${info.title} · Instructor: ${info.instructorName}`
@@ -173,6 +193,8 @@ class CollabCodeClient implements vscode.Disposable {
     this.socket?.disconnect();
     this.socket = undefined;
     this.session = undefined;
+    this.companionPanel?.dispose();
+    this.companionPanel = undefined;
     this.status.text = "$(radio-tower) CollabCode: Join";
     this.status.backgroundColor = undefined;
     if (notify) void vscode.window.showInformationMessage("Left the CollabCode room.");
@@ -218,6 +240,7 @@ class CollabCodeClient implements vscode.Disposable {
       selectionStartLine: editor.selection.start.line + 1,
       selectionEndLine: editor.selection.end.line + 1
     });
+    this.postCompanion();
   }
 
   private receiveHint(hint: Hint): void {
@@ -225,6 +248,7 @@ class CollabCodeClient implements vscode.Disposable {
     this.hints.unshift(hint);
     this.openHintPanel();
     this.postPanel({ type: "hints", hints: this.hints });
+    this.postCompanion();
     this.session.events.push({
       id: randomUUID(),
       type: "hint_received",
@@ -290,6 +314,15 @@ class CollabCodeClient implements vscode.Disposable {
     void this.hintPanel?.webview.postMessage(message);
   }
 
+  private postCompanion(): void {
+    const editor = vscode.window.activeTextEditor;
+    void this.companionPanel?.webview.postMessage({ type: "state", roomCode: this.session?.roomCode, title: this.sessionTitle, instructor: this.instructorName, fileName: editor && editor.document.uri.scheme === "file" ? vscode.workspace.asRelativePath(editor.document.uri) : "No local file selected", language: editor?.document.languageId ?? "—", line: editor ? editor.selection.active.line + 1 : 0, connected: Boolean(this.socket?.connected), hints: this.hints.length });
+  }
+
+  private companionHtml(): string {
+    return `<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);padding:18px;line-height:1.45}header{padding:14px;border-radius:10px;background:var(--vscode-editor-inactiveSelectionBackground)}small,dt{color:var(--vscode-descriptionForeground)}dl{display:grid;grid-template-columns:90px 1fr;gap:10px 12px;padding:10px 0}dd{margin:0;overflow-wrap:anywhere}button{width:100%;margin-top:8px;padding:8px;color:var(--vscode-button-foreground);background:var(--vscode-button-background);border:0;border-radius:4px;cursor:pointer}.secondary{color:var(--vscode-foreground);background:var(--vscode-button-secondaryBackground)}</style></head><body><header><strong id="title">CollabCode</strong><br><small id="status">Connecting…</small></header><h3>Live editor mirror</h3><dl><dt>File</dt><dd id="file">—</dd><dt>Language</dt><dd id="language">—</dd><dt>Cursor</dt><dd id="line">—</dd><dt>Hints</dt><dd id="hints">0</dd></dl><button id="help">Request private help</button><button class="secondary" id="refresh">Refresh view</button><script>const vscode=acquireVsCodeApi();help.onclick=()=>vscode.postMessage({type:'requestHelp'});refresh.onclick=()=>vscode.postMessage({type:'refresh'});addEventListener('message',({data})=>{if(data.type!=='state')return;title.textContent=data.title||'CollabCode session';status.textContent=(data.connected?'● Live':'○ Reconnecting')+' · '+(data.roomCode||'');file.textContent=data.fileName;language.textContent=data.language;line.textContent=data.line?'Line '+data.line:'—';hints.textContent=String(data.hints)})</script></body></html>`;
+  }
+
   private panelHtml(): string {
     return `<!doctype html><html><head><meta charset="utf-8"><style>
 body{font-family:var(--vscode-font-family);color:var(--vscode-foreground);background:var(--vscode-editor-background);padding:16px}
@@ -321,6 +354,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("collabcode.joinRoom", () => client.join()),
     vscode.commands.registerCommand("collabcode.leaveRoom", () => client.leave()),
     vscode.commands.registerCommand("collabcode.requestHelp", () => client.requestHelp()),
+    vscode.commands.registerCommand("collabcode.openCompanion", () => client.openCompanion()),
+    vscode.commands.registerCommand("collabcode.showPrivacy", () => client.showPrivacy()),
     vscode.commands.registerCommand("collabcode.exportSession", () => client.exportSession())
   );
 }

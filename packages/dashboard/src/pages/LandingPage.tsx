@@ -1,33 +1,14 @@
 import { motion } from "framer-motion";
-import {
-  ArrowRight,
-  BadgeCheck,
-  ChartNoAxesCombined,
-  CircleHelp,
-  Eye,
-  Gauge,
-  GitBranch,
-  Radar,
-  RadioTower,
-  Rewind,
-  Sparkles,
-  ShieldCheck,
-  UsersRound
-} from "lucide-react";
+import { ArrowRight, CalendarClock, Captions, Compass, Eye, Headphones, RadioTower, UsersRound } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Logo } from "../components/Logo";
 
 const features = [
-  [Radar, "Silent-drift radar", "Forecast rising struggle from real editing, idle, and error signals before a help request."],
-  [Gauge, "Room health", "Condense live flow and intervention demand into one continuously updated classroom signal."],
-  [Sparkles, "Recovery runway", "Recognize when momentum returns after a stuck moment or teaching intervention."],
-  [ShieldCheck, "Flow shields", "Protect students in deep productive flow from unnecessary class-wide interruptions."],
-  [GitBranch, "Solution divergence", "See whether solutions are evolving independently without exposing code publicly."],
-  [BadgeCheck, "Hint impact loop", "Track delivery, acknowledgement, and subsequent momentum for every intervention."],
-  [UsersRound, "Checkpoint readiness", "Know when the room is ready to regroup from live participation and risk signals."],
-  [Rewind, "Process replay", "Review how a solution evolved instead of judging only the final answer."],
-  [CircleHelp, "Private help channel", "Let students ask quietly without performing uncertainty in front of the room."],
-  [ChartNoAxesCombined, "Teaching intelligence", "Find the files, lines, and recovery moments that should reshape the next lesson."]
+  [Compass, "Live room compass", "A single conference-style pulse blends active work, help requests, and rising friction so you know where to walk next."],
+  [Headphones, "Private rescue lane", "Students can ask quietly from VS Code; instructors reply with a contextual hint right beside the editor."],
+  [CalendarClock, "Momentum replay", "Revisit the exact sequence of edits, errors, and interventions—not just a final file or a vague memory."],
+  [UsersRound, "Rotating breakouts", "Match a driver with an observer and automatically swap roles, turning pair programming into an equitable live flow."],
+  [Captions, "AI teaching co-pilot", "Turn a live stuck signal into an editable, human-reviewed next question before it reaches a student."]
 ] as const;
 
 export function LandingPage() {
@@ -36,7 +17,7 @@ export function LandingPage() {
       <nav className="landing-nav">
         <Logo />
         <div>
-          <a href="#features">Product</a>
+          <a href="#features">Five superpowers</a>
           <a href="#workflow">How it works</a>
           <Link className="button secondary small" to="/dashboard">Open dashboard</Link>
         </div>
@@ -50,17 +31,17 @@ export function LandingPage() {
             transition={{ duration: 0.65 }}
             className="hero-copy"
           >
-            <span className="pill"><span /> Built for live coding classrooms</span>
-            <h1>Your class is coding.<br /><em>Know who needs you.</em></h1>
+            <span className="pill"><span /> The live conference layer for coding classrooms</span>
+            <h1>Run the room.<br /><em>Keep every coder in the conversation.</em></h1>
             <p>
-              CollabCode gives CS instructors a live view of every student&apos;s editor,
-              with intelligent stuck detection and hints delivered where students work.
+              A bright, calm command center for live coding: see the room, host breakouts,
+              and send the right nudge without interrupting everyone.
             </p>
             <div className="hero-actions">
               <Link className="button primary" to="/dashboard">Start a live room <ArrowRight size={17} /></Link>
               <a className="button secondary" href="#preview"><Eye size={16} /> See how live data works</a>
             </div>
-            <div className="trust-row"><span>No screen sharing</span><span>Persistent sessions</span><span>Multi-instructor</span></div>
+            <div className="trust-row"><span>No screen sharing</span><span>Private by room</span><span>Multi-instructor</span></div>
           </motion.div>
           <motion.div
             id="preview"
@@ -76,12 +57,12 @@ export function LandingPage() {
           </motion.div>
         </section>
         <section className="section" id="workflow">
-          <div className="section-heading"><span className="eyebrow">The classroom signal layer</span><h2>See the work behind the answer.</h2><p>Observe progress without taking control of the student&apos;s environment.</p></div>
+          <div className="section-heading"><span className="eyebrow">A better live format</span><h2>Host a coding session like a great conference.</h2><p>Move from room setup to active facilitation without taking control of a student&apos;s environment.</p></div>
           <div className="steps">
             {[
-              ["01", "Students join", "A lightweight VS Code extension connects to a room code."],
-              ["02", "Signals become context", "Code snapshots, idle time, and errors form a live progress picture."],
-              ["03", "You intervene precisely", "Review the moment, send a hint, pair students, or pause the class."]
+              ["01", "Open the room", "Create a session, share its code, and let attendees join directly from VS Code."],
+              ["02", "Read the floor", "Live file, activity, idle, and error signals become an actionable room pulse."],
+              ["03", "Host the next move", "Send a private hint, create a rotating breakout pair, or replay the moment together."]
             ].map(([number, title, copy]) => (
               <motion.article whileInView={{ opacity: 1, y: 0 }} initial={{ opacity: 0, y: 20 }} viewport={{ once: true }} key={number}>
                 <span>{number}</span><h3>{title}</h3><p>{copy}</p>
@@ -90,7 +71,7 @@ export function LandingPage() {
           </div>
         </section>
         <section className="section feature-section" id="features">
-          <div className="section-heading"><span className="eyebrow">One calm control room</span><h2>Everything you need during the lab.</h2></div>
+          <div className="section-heading"><span className="eyebrow">Five superpowers</span><h2>Unusually capable, still human-led.</h2><p>Each capability is connected to the live room, extension, and teaching workflow.</p></div>
           <div className="feature-grid">
             {features.map(([Icon, title, copy]) => (
               <motion.article whileHover={{ y: -4 }} key={title}>
@@ -101,7 +82,7 @@ export function LandingPage() {
         </section>
         <section className="closing"><Eye size={28} /><h2>Make silent struggle visible.</h2><p>Create a live room and let real classroom activity shape every signal.</p><Link className="button primary" to="/dashboard">Open instructor dashboard <ArrowRight size={17} /></Link></section>
       </main>
-      <footer className="site-footer"><Logo /><span>Real-time classroom coding intelligence.</span><span>Privacy-first by design</span></footer>
+      <footer className="site-footer"><Logo /><span>Real-time classroom coding intelligence.</span><Link to="/privacy">Privacy</Link><Link to="/terms">Terms</Link></footer>
     </div>
   );
 }

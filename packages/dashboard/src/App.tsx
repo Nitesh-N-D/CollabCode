@@ -7,6 +7,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { LandingPage } from "./pages/LandingPage";
 import { SessionPage } from "./pages/SessionPage";
 import { WarRoomPage } from "./pages/WarRoomPage";
+import { LegalPage } from "./pages/LegalPage";
 import { supabase } from "./lib/supabase";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
@@ -29,6 +30,8 @@ export default function App() {
     <Route path="/session/:roomCode" element={<Guard session={session}><SessionPage /></Guard>} />
     <Route path="/analytics/:roomCode" element={<Guard session={session}><AnalyticsPage /></Guard>} />
     <Route path="/warroom" element={<Guard session={session}><WarRoomPage /></Guard>} />
+    <Route path="/privacy" element={<LegalPage kind="privacy" />} />
+    <Route path="/terms" element={<LegalPage kind="terms" />} />
     <Route path="*" element={<Navigate to="/" replace />} />
   </Routes></BrowserRouter></ErrorBoundary>;
 }

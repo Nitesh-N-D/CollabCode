@@ -2,7 +2,7 @@
   "name": "collabcode-vscode",
   "displayName": "CollabCode Classroom",
   "description": "Real-time classroom coding support for students.",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "publisher": "niteshnd",
   "icon": "images/icon.png",
   "repository": {
@@ -39,6 +39,8 @@
       { "command": "collabcode.joinRoom", "title": "CollabCode: Join Classroom" },
       { "command": "collabcode.leaveRoom", "title": "CollabCode: Leave Classroom" },
       { "command": "collabcode.requestHelp", "title": "CollabCode: Request Help Privately" },
+      { "command": "collabcode.openCompanion", "title": "CollabCode: Open Session Companion" },
+      { "command": "collabcode.showPrivacy", "title": "CollabCode: Show Data & Privacy" },
       { "command": "collabcode.exportSession", "title": "CollabCode: Export My Session" }
     ],
     "configuration": {
